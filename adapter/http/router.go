@@ -1,17 +1,24 @@
 package http
 
 import (
+	"boi-marronzinho-api/adapter/http/handler"
 	"boi-marronzinho-api/adapter/http/router"
-	"boi-marronzinho-api/container"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/fx"
 )
 
+func RegisterRoutes(
+	r *gin.Engine,
+	userHandler *handler.UsuarioHandler,
+) {
+	router.SetupUsuarioRoutes(r, userHandler)
+}
 
-func SetupRouter(cont *container.Container) *gin.Engine {
-	r := gin.Default()
+func SetupRouter() *gin.Engine {
+	return gin.Default()
+}
 
-	router.SetupUsuarioRoutes(r, cont.UserHandler)
-
-	return r
+func RouterModule() fx.Option {
+	return fx.Provide(SetupRouter)
 }
