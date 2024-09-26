@@ -24,17 +24,6 @@ services:
     networks:
       - boi-marronzinho-network
 
-  boi-marronzinho-api:
-    build: .
-    container_name: boi-marronzinho-api
-    ports:
-      - "8080:8080"
-    networks:
-      - boi-marronzinho-network
-    depends_on:
-      - boi-marronzinho-postgresql
-      - boi-marronzinho-flyway
-
 networks:
   boi-marronzinho-network:
     driver: bridge
