@@ -1,0 +1,41 @@
+version: '3.7'
+services:
+  boi-marronzinho-postgresql:
+    image: postgres:16.4
+    container_name: boi-marronzinho-postgresql
+    environment:
+      POSTGRES_DB: boi_marronzinho
+      POSTGRES_USER: labsc
+      POSTGRES_PASSWORD: boimarronzinho
+    volumes:
+      - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
+    ports:
+      - "5432:5432"
+    networks:
+      - boi-marronzinho-network
+
+  boi-marronzinho-flyway:
+    image: flyway/flyway:6.3.1
+    container_name: boi-marronzinho-flyway
+    command: -configFiles=/flyway/conf/flyway.config -locations=filesystem:/flyway/sql -connectRetries=60 migrate
+    volumes:
+      - ./../migrate/changelogs:/flyway/sql
+      - ./../migrate/flyway.config:/flyway/conf/flyway.config
+    networks:
+      - boi-marronzinho-network
+
+  boi-marronzinho-api:
+    build: .
+    container_name: boi-marronzinho-api
+    ports:
+      - "8080:8080"
+    networks:
+      - boi-marronzinho-network
+    depends_on:
+      - boi-marronzinho-postgresql
+      - boi-marronzinho-flyway
+
+networks:
+  boi-marronzinho-network:
+    driver: bridge
+    name: boi-marronzinho-network
