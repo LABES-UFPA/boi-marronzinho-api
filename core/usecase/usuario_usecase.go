@@ -33,12 +33,12 @@ func (uc *UsuarioUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Us
 	// }
 
 	user := &domain.Usuario{
-		ID:           uuid.New(),
-		Nome: usuarioRequest.Nome,
-		Email: usuarioRequest.Email,
-		TipoUsuario: usuarioRequest.TipoUsuario,
-		IdiomaPreferido: usuarioRequest.TipoUsuario,
-		CriadoEm: time.Now(),
+		ID:              uuid.New(),
+		Nome:            usuarioRequest.Nome,
+		Email:           usuarioRequest.Email,
+		TipoUsuario:     usuarioRequest.TipoUsuario,
+		IdiomaPreferido: "pt",
+		CriadoEm:        time.Now(),
 	}
 
 	// err = user.Validate()
