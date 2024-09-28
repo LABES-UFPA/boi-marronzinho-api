@@ -13,7 +13,7 @@ type DoacaoUseCase struct {
 	doacaoRepo repository.DoacaoRepository
 }
 
-func NewDoacaoRepository(doacaoRepo repository.DoacaoRepository) *DoacaoUseCase {
+func NewDoacaoUseCase(doacaoRepo repository.DoacaoRepository) *DoacaoUseCase {
 	return &DoacaoUseCase{doacaoRepo: doacaoRepo}
 }
 
