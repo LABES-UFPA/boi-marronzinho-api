@@ -1,5 +1,2 @@
 #!/bin/bash
-
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE boi-marronzinho;
-EOSQL
+psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'boi_marronzinho'" | grep -q 1 || psql -U postgres -c "CREATE DATABASE boi_marronzinho"

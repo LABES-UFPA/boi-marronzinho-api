@@ -7,6 +7,7 @@ services:
       POSTGRES_DB: boi_marronzinho
       POSTGRES_USER: labsc
       POSTGRES_PASSWORD: boimarronzinho
+      POSTGRES_HOST_AUTH_METHOD: md5
     volumes:
       - ./initdb.sh:/docker-entrypoint-initdb.d/initdb.sh
     ports:
@@ -15,25 +16,14 @@ services:
       - boi-marronzinho-network
 
   boi-marronzinho-flyway:
-    image: flyway/flyway:6.3.1
+    image: flyway/flyway:7.0.2
     container_name: boi-marronzinho-flyway
     command: -configFiles=/flyway/conf/flyway.config -locations=filesystem:/flyway/sql -connectRetries=60 migrate
     volumes:
-      - ./../migrate/changelogs:/flyway/sql
-      - ./../migrate/flyway.config:/flyway/conf/flyway.config
+      - ./migrate/changelogs:/flyway/sql
+      - ./migrate/flyway.config:/flyway/conf/flyway.config
     networks:
       - boi-marronzinho-network
-
-  boi-marronzinho-api:
-    build: .
-    container_name: boi-marronzinho-api
-    ports:
-      - "8080:8080"
-    networks:
-      - boi-marronzinho-network
-    depends_on:
-      - boi-marronzinho-postgresql
-      - boi-marronzinho-flyway
 
 networks:
   boi-marronzinho-network:

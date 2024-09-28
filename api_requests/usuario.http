@@ -48,5 +48,5 @@ Authorization: Bearer {token}
 
 # Requisição para deletar um usuário (deleção lógica, autenticado)
 # Substitua {token} pelo token JWT obtido após o login
-DELETE http://localhost:8080/api/v1/usuarios/a759ab96-9603-41d1-9b99-3d3b83065f2e
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxvZ2FuY2FyZG9zb0BnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW5pc3RyYWRvciIsImF1ZCI6ImFwaS1jbGllbnQiLCJleHAiOjE3Mjc1NDY3ODQsImlzcyI6ImJvaS1tYXJyb256aW5oby1hcGkifQ.hUr76dQ4eWAzY1k2qzS0dwAi0Vyr04QC1jw-wI0q-M8
+DELETE http://localhost:8080/api/v1/usuarios/{id}
+Authorization: Bearer {token}
