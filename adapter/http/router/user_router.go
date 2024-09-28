@@ -17,6 +17,8 @@ func SetupUserRoutes(router *gin.Engine, userHandler *handler.UserHandler) {
 	protectedGroup := router.Group("/api/v1/usuarios")
 	protectedGroup.Use(auth.JWTAuthMiddleware())
 	{
-		//protectedGroup.GET("/:id", userHandler.GetUser)
+		protectedGroup.DELETE("/:id", userHandler.DeleteUser)
+		protectedGroup.PUT("/:id", userHandler.UpdateUser)
+		protectedGroup.GET("/:id", userHandler.GetUser)
 	}
 }
