@@ -1,4 +1,4 @@
-package usuario
+package user
 
 import (
 	"boi-marronzinho-api/adapter/http/handler"
@@ -19,10 +19,10 @@ func NewUserRepository(db *gorm.DB) repository.UserRepository {
 	return repository.NewUserRepository(db)
 }
 
-func NewUserUseCase(repo repository.UserRepository) *usecase.UsuarioUseCase {
+func NewUserUseCase(repo repository.UserRepository) *usecase.UserUseCase {
 	return usecase.NewUsuarioUseCase(repo)
 }
 
-func NewUserHandler(uc *usecase.UsuarioUseCase) *handler.UsuarioHandler {
+func NewUserHandler(uc *usecase.UserUseCase) *handler.UserHandler {
 	return handler.NewUserHandler(uc)
 }
