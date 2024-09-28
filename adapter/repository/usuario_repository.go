@@ -12,6 +12,7 @@ type UserRepository interface {
 	Create(user *domain.Usuario) error
 	GetByID(id uuid.UUID) (*domain.Usuario, error)
 	GetByEmail(email string) (*domain.Usuario, error)
+	Update(*domain.Usuario) error
 	Delete(*domain.Usuario) error
 }
 
@@ -46,6 +47,10 @@ func (r *userRepository) GetByEmail(email string) (*domain.Usuario, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) Update(user *domain.Usuario) error {
+	return r.db.Save(user).Error
 }
 
 func (r *userRepository) Delete(user *domain.Usuario) error {
