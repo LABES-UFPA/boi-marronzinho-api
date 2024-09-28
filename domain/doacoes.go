@@ -10,7 +10,7 @@ type Doacoes struct {
 	ID                uuid.UUID `json:"id" gorm:"primaryKey"`
 	UsuarioID         uuid.UUID `json:"usuarioId"`
 	ItemDoacaoID      uuid.UUID `json:"itemDoacaoId"`
-	Quantidade        float64   `json:"quantidade"`
+	Quantidade        int64     `json:"quantidade"`
 	BoicoinsRecebidos float64   `json:"boicoinsRecebidos"`
 	DataDoacao        time.Time `json:"dataDoacao"`
 }
