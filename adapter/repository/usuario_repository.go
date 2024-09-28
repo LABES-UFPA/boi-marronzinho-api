@@ -23,8 +23,8 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) Create(usuario *domain.Usuario) error {
 	logrus.WithFields(logrus.Fields{
-		"username": usuario.Nome,
-		"email":    usuario.Email,
+		"user":  usuario.FirstName + " " + usuario.LastName,
+		"email": usuario.Email,
 	}).Info("Create new user")
 
 	return r.db.Create(usuario).Error
