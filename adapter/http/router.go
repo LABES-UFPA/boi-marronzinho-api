@@ -30,9 +30,9 @@ func StartServer(lc fx.Lifecycle, r *gin.Engine) {
 
 func RegisterRoutes(
 	r *gin.Engine,
-	userHandler *handler.UsuarioHandler,
+	userHandler *handler.UserHandler,
 ) {
-	router.SetupUsuarioRoutes(r, userHandler)
+	router.SetupUserRoutes(r, userHandler)
 }
 
 func SetupRouter() *gin.Engine {
