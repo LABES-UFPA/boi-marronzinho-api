@@ -3,14 +3,16 @@ package repository
 import (
 	"boi-marronzinho-api/domain"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type UserRepository interface {
 	Create(user *domain.Usuario) error
-	GetByID(id int) (*domain.Usuario, error)
+	GetByID(id uuid.UUID) (*domain.Usuario, error)
 	GetByEmail(email string) (*domain.Usuario, error)
+	Delete(*domain.Usuario) error
 }
 
 type userRepository struct {
@@ -30,7 +32,7 @@ func (r *userRepository) Create(usuario *domain.Usuario) error {
 	return r.db.Create(usuario).Error
 }
 
-func (r *userRepository) GetByID(id int) (*domain.Usuario, error) {
+func (r *userRepository) GetByID(id uuid.UUID) (*domain.Usuario, error) {
 	var user domain.Usuario
 	if err := r.db.First(&user, id).Error; err != nil {
 		return nil, err
@@ -44,4 +46,8 @@ func (r *userRepository) GetByEmail(email string) (*domain.Usuario, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) Delete(user *domain.Usuario) error {
+	return r.db.Delete(user).Error
 }
