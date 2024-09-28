@@ -41,7 +41,7 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		Email:           usuarioRequest.Email,
 		PasswordHash:    string(hashedPassword),
 		TipoUsuario:     usuarioRequest.TipoUsuario,
-		IdiomaPreferido: usuarioRequest.TipoUsuario,
+		IdiomaPreferido: usuarioRequest.IdiomaPreferido,
 		CreatedAt:       time.Now(),
 	}
 
@@ -61,7 +61,7 @@ func (uc *UserUseCase) Login(email, password string) (string, error) {
 		return "", err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
