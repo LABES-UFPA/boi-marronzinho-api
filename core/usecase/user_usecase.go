@@ -73,8 +73,18 @@ func (uc *UserUseCase) Login(email, password string) (string, error) {
 	return token, nil
 }
 
+func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*domain.Usuario, error) {
+	user, err := uc.userRepo.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("usuário não encontrado")
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
 func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*domain.Usuario, error) {
-	// Buscar o usuário para verificar se ele existe
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -83,7 +93,6 @@ func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*do
 		return nil, err
 	}
 
-	// Atualizar os campos necessários
 	if updateData.FirstName != "" {
 		user.FirstName = updateData.FirstName
 	}
@@ -97,9 +106,8 @@ func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*do
 		user.IdiomaPreferido = updateData.IdiomaPreferido
 	}
 
-	user.UpdatedAt = time.Now() // Atualizar o campo `UpdatedAt` para refletir a modificação
+	user.UpdatedAt = time.Now()
 
-	// Atualizar o usuário no banco de dados
 	err = uc.userRepo.Update(user)
 	if err != nil {
 		return nil, errors.New("failed to update user")
