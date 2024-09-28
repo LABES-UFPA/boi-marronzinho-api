@@ -1,0 +1,52 @@
+# Requisição para criar um novo usuário (signup)
+POST http://localhost:8080/api/v1/usuarios/signup
+Content-Type: application/json
+
+{
+  "firstName": "Logan",
+  "lastName": "Cardoso",
+  "email": "logancardoso@gmail.com",
+  "tipoUsuario": "Administrador",
+  "idiomaPreferido": "pt",
+  "password": "123123123"
+}
+
+###
+
+# Requisição para login do usuário
+POST http://localhost:8080/api/v1/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "logancardoso@gmail.com",
+  "password": "123123123"
+}
+
+###
+
+# Requisição para obter um usuário específico (autenticado)
+# Substitua {token} pelo token JWT obtido após o login
+GET http://localhost:8080/api/v1/usuarios/{id}
+Authorization: Bearer {token}
+
+###
+
+# Requisição para atualizar informações do usuário (autenticado)
+# Substitua {token} pelo token JWT obtido após o login
+PUT http://localhost:8080/api/v1/usuarios/{id}
+Content-Type: application/json
+Authorization: Bearer {token}
+
+{
+  "firstName": "Logan",
+  "lastName": "Almeida Cardoso",
+  "tipoUsuario": "Administrador",
+  "idiomaPreferido": "en"
+}
+
+###
+
+# Requisição para deletar um usuário (deleção lógica, autenticado)
+# Substitua {token} pelo token JWT obtido após o login
+DELETE http://localhost:8080/api/v1/usuarios/{id}
+Authorization: Bearer {token}
