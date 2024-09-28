@@ -3,7 +3,8 @@ package auth
 import (
     "os"
     "time"
-    "github.com/dgrijalva/jwt-go"
+
+    "github.com/golang-jwt/jwt/v4"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
@@ -11,7 +12,7 @@ var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 type Claims struct {
     Username string `json:"username"`
     Role     string `json:"role"`
-    jwt.StandardClaims
+    jwt.RegisteredClaims
 }
 
 func GenerateJWT(username, role string) (string, error) {
@@ -19,10 +20,10 @@ func GenerateJWT(username, role string) (string, error) {
     claims := &Claims{
         Username: username,
         Role:     role,
-        StandardClaims: jwt.StandardClaims{
-            ExpiresAt: expirationTime.Unix(),
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(expirationTime),
             Issuer:    "boi-marronzinho-api",
-            Audience:  "api-client",
+            Audience:  []string{"api-client"},
         },
     }
 
@@ -38,7 +39,10 @@ func ParseJWT(tokenStr string) (*Claims, error) {
         }
         return jwtKey, nil
     })
-    if err != nil || !token.Valid {
+    if err != nil {
+        return nil, err
+    }
+    if !token.Valid {
         return nil, jwt.ErrSignatureInvalid
     }
     return claims, nil
