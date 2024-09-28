@@ -72,3 +72,20 @@ func (uc *UserUseCase) Login(email, password string) (string, error) {
 
 	return token, nil
 }
+
+func (uc *UserUseCase) DeleteUser(id uuid.UUID) error {
+	user, err := uc.userRepo.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.New("user not found")
+		}
+		return err
+	}
+
+	err = uc.userRepo.Delete(user)
+	if err != nil {
+		return errors.New("failed to delete user")
+	}
+
+	return nil
+}
