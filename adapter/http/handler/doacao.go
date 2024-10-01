@@ -31,3 +31,19 @@ func (dh *DoacaoHandler) AdicionaDoacao(c *gin.Context) {
 
 	c.JSON(http.StatusOK, doacao)
 }
+
+func (dh *DoacaoHandler) CriaItemDoacao(c *gin.Context) {
+	var itemDoacaoDTO *domain.ItemDoacao
+	if err := c.ShouldBindJSON(&itemDoacaoDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	itemDoacao, err := dh.DoacaoUseCase.CriarItemDoacao(itemDoacaoDTO)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, itemDoacao)
+}
