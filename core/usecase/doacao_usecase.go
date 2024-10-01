@@ -39,6 +39,18 @@ func (duc *DoacaoUseCase) AdicionaDoacao(doacaoResquest *domain.Doacoes) (*domai
 	return doacao, nil
 }
 
+func (duc *DoacaoUseCase) CriarItemDoacao(itemDoacaoRequest *domain.ItemDoacao) (*domain.ItemDoacao, error) {
+	itemDoacao := &domain.ItemDoacao{
+		ID:              uuid.New(),
+		Descricao:       itemDoacaoRequest.Descricao,
+		UnidadeMedida:   itemDoacaoRequest.UnidadeMedida,
+		BoicoinsUnidade: itemDoacaoRequest.BoicoinsUnidade,
+	}
+
+	return duc.doacaoRepo.CriaItemDoacao(itemDoacao)
+}
+
+
 func calculaBoicoins(valorUnidade float64, quantidade int64) (float64, error) {
 	if valorUnidade < 0 || quantidade < 0 {
 		return 0, errors.New("valorUnidade e quantidade devem ser maiores que zero")
