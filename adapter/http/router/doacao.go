@@ -12,5 +12,6 @@ func SetupDoacaoRoutes(router *gin.Engine, doacaoHandler *handler.DoacaoHandler)
 	protectedGroup.Use(auth.JWTAuthMiddleware())
 	{
 		protectedGroup.POST("", doacaoHandler.AdicionaDoacao)
+		protectedGroup.POST("/adiciona-item-doacao", doacaoHandler.CriaItemDoacao)
 	}
 }
