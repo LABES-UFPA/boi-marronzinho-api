@@ -17,7 +17,7 @@ type Usuario struct {
 	IdiomaPreferido      string         `json:"idiomaPreferido" validate:"required"`
 	Password             string         `json:"password" validate:"required" gorm:"-"`
 	PasswordHash         string         `json:"-" validate:"required,min=1,max=255"`
-	LastLogin            *time.Time     `json:"_"`
+	LastLogin            *time.Time     `json:"-"`
 	PasswordResetToken   *string        `json:"-"`
 	PasswordResetExpires *time.Time     `json:"-"`
 	CreatedAt            time.Time      `json:"-"`
