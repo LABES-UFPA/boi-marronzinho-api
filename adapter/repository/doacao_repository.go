@@ -6,17 +6,17 @@ import (
 )
 
 type DoacaoRepository interface {
-    Repository[domain.ItemDoacao]
+    Repository[domain.Doacoes]
 }
 
 type doacaoRepository struct {
-    Repository[domain.ItemDoacao]
+    Repository[domain.Doacoes]
     db *gorm.DB
 }
 
 func NewDoacaoRepository(db *gorm.DB) DoacaoRepository {
     return &doacaoRepository{
-        Repository: NewRepository[domain.ItemDoacao](db),
-        db: db,
+        Repository: NewRepository[domain.Doacoes](db),
+        db:         db,
     }
 }
