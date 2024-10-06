@@ -1,13 +1,17 @@
 package repository
 
 import (
-    "boi-marronzinho-api/domain"
-    "gorm.io/gorm"
+	"boi-marronzinho-api/domain"
+	"errors"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserRepository interface {
     Repository[domain.Usuario]
     GetByEmail(email string) (*domain.Usuario, error)
+    AtualizarSaldo(usuarioID uuid.UUID, boicoinsRecebidos float64) error
 }
 
 type userRepository struct {
@@ -22,10 +26,22 @@ func NewUserRepository(db *gorm.DB) UserRepository {
     }
 }
 
-func (r *userRepository) GetByEmail(email string) (*domain.Usuario, error) {
+func (ur *userRepository) GetByEmail(email string) (*domain.Usuario, error) {
     var user domain.Usuario
-    if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+    if err := ur.db.Where("email = ?", email).First(&user).Error; err != nil {
         return nil, err
     }
     return &user, nil
+}
+
+func (ur *userRepository) AtualizarSaldo(usuarioID uuid.UUID, boicoinsRecebidos float64) error {
+    result := ur.db.Model(&domain.Usuario{}).Where("id = ?", usuarioID).
+        Update("saldo_boicoins", gorm.Expr("saldo_boicoins + ?", boicoinsRecebidos))
+    if result.Error != nil {
+        return result.Error
+    }
+    if result.RowsAffected == 0 {
+        return errors.New("usuário não encontrado ou saldo não atualizado")
+    }
+    return nil
 }
