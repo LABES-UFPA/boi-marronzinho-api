@@ -35,20 +35,20 @@ func (uh *UserHandler) CreateUser(c *gin.Context) {
 }
 
 func (uh *UserHandler) Login(c *gin.Context) {
-	var loginDTO dto.UsuarioLoginDTO
+	var loginDTO dto.LoginDTO
 
 	if err := c.ShouldBindJSON(&loginDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	token, err := uh.UserUseCase.Login(loginDTO.Email, loginDTO.Password)
+	userResponse, err := uh.UserUseCase.Login(loginDTO.Email, loginDTO.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{"login": userResponse})
 }
 
 func (uh *UserHandler) GetUser(c *gin.Context) {
