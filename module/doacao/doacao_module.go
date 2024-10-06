@@ -18,15 +18,20 @@ var DoacaoModule = fx.Options(
 )
 
 func NewDoacaoRepository(db *gorm.DB) repository.Repository[domain.Doacoes] {
-    return repository.NewRepository[domain.Doacoes](db)
+    return repository.NewDoacaoRepository(db)
 }
 
 func NewItemDoacaoRepository(db *gorm.DB) repository.Repository[domain.ItemDoacao] {
     return repository.NewRepository[domain.ItemDoacao](db)
 }
 
-func NewDoacaoUseCase(doacaoRepo repository.Repository[domain.Doacoes], itemDoacaoRepo repository.Repository[domain.ItemDoacao]) *usecase.DoacaoUseCase {
-    return usecase.NewDoacaoUseCase(doacaoRepo, itemDoacaoRepo)
+func NewDoacaoUseCase(
+    doacaoRepo repository.Repository[domain.Doacoes],
+    itemDoacaoRepo repository.Repository[domain.ItemDoacao],
+    usuarioRepo repository.UserRepository,
+    boicoinRepo repository.BoicoinRepository,
+) *usecase.DoacaoUseCase {
+    return usecase.NewDoacaoUseCase(doacaoRepo, itemDoacaoRepo, usuarioRepo, boicoinRepo)
 }
 
 func NewDoacaoHandler(duc *usecase.DoacaoUseCase) *handler.DoacaoHandler {
