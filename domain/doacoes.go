@@ -20,13 +20,13 @@ func (d *Doacoes) TableName() string {
 }
 
 type ItemDoacao struct {
-	ID              uuid.UUID `json:"id" gorm:"primaryKey"`
-	NomeItem        string    `json:"nomeItem"`
-	Descricao       string    `json:"Descricao"`
-	UnidadeMedida   string    `json:"unidadeMedida"`
-	BoicoinsUnidade float64   `json:"boicoinsUnidade"`
+	ID                 uuid.UUID `json:"id" gorm:"primaryKey"`
+	NomeItem           string    `json:"nomeItem"`
+	Descricao          string    `json:"Descricao"`
+	UnidadeMedida      string    `json:"unidadeMedida"`
+	BoicoinsPorUnidade float64   `json:"boicoinsPorUnidade"`
 }
 
 func (id *ItemDoacao) TableName() string {
-	return "boi_marronzinho.itens_doacoes"
+	return "boi_marronzinho.itens_doacao"
 }
