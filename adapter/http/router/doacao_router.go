@@ -13,8 +13,8 @@ func SetupDoacaoRoutes(router *gin.Engine, doacaoHandler *handler.DoacaoHandler)
 	{
 		protectedGroup.POST("", doacaoHandler.AdicionaDoacao)
 		protectedGroup.POST("/adiciona-item-doacao", doacaoHandler.CriaItemDoacao)
-		protectedGroup.PUT("/atualiza-item-doacao/:id", doacaoHandler.AtualizaItemDoacao)
-		protectedGroup.DELETE("/deleta-item-doacao/:id", doacaoHandler.DeletaItemDoacao)
+		protectedGroup.PUT("/:id", doacaoHandler.AtualizaItemDoacao)
+		protectedGroup.DELETE("/:id", doacaoHandler.DeletaItemDoacao)
 		// protectedGroup.GET("/captura-todos-itens-doacao", doacaoHandler.CapturaTodosItensDoacao)
 		// protectedGroup.GET("/captura-item-doacao/:id", doacaoHandler.CapturaItemDoacao)
 	}
