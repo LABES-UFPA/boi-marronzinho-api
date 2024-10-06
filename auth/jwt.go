@@ -1,25 +1,29 @@
 package auth
 
 import (
+	"boi-marronzinho-api/domain"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type Claims struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Role     string    `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(username, role string) (string, error) {
+func GenerateJWT(user *domain.Usuario) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 	claims := &Claims{
-		Username: username,
-		Role:     role,
+		ID:       user.ID,
+		Username: user.FirstName,
+		Role:     user.TipoUsuario,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			Issuer:    "boi-marronzinho-api",
