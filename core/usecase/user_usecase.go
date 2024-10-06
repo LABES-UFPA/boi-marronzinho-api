@@ -4,6 +4,7 @@ import (
 	"boi-marronzinho-api/adapter/repository"
 	"boi-marronzinho-api/auth"
 	"boi-marronzinho-api/domain"
+	"boi-marronzinho-api/dto"
 	"errors"
 	"time"
 
@@ -22,7 +23,7 @@ func NewUsuarioUseCase(userRepo repository.UserRepository) *UserUseCase {
 
 func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuario, error) {
 	existingUser, err := uc.userRepo.GetByEmail(usuarioRequest.Email)
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	if existingUser != nil {
@@ -31,7 +32,7 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(usuarioRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errors.New("failed to hash password")
+		return nil, errors.New("falha ao criptografar a senha")
 	}
 
 	user := &domain.Usuario{
@@ -45,38 +46,50 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		CreatedAt:       time.Now(),
 	}
 
-	if err = uc.userRepo.Create(user); err != nil {
+	if _, err = uc.userRepo.Create(user); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func (uc *UserUseCase) Login(email, password string) (string, error) {
+func (uc *UserUseCase) Login(email, password string) (*dto.LoginResponseDTO, error) {
 	user, err := uc.userRepo.GetByEmail(email)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return "", errors.New("invalid credentials")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("credenciais inválidas")
 		}
-		return "", err
+		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", errors.New("invalid credentials")
+		return nil, errors.New("credenciais inválidas")
 	}
 
-	token, err := auth.GenerateJWT(user.Email, user.TipoUsuario)
+	token, err := auth.GenerateJWT(user)
 	if err != nil {
-		return "", errors.New("could not generate token")
+		return nil, errors.New("não foi possível gerar o token")
 	}
 
-	return token, nil
+	userResponse := &dto.LoginResponseDTO{
+		Token: &token,
+		Usuario: &domain.Usuario{
+			ID:              user.ID,
+			FirstName:       user.FirstName,
+			LastName:        user.LastName,
+			Email:           user.Email,
+			TipoUsuario:     user.TipoUsuario,
+			IdiomaPreferido: user.IdiomaPreferido,
+		},
+	}
+
+	return userResponse, nil
 }
 
 func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*domain.Usuario, error) {
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("usuário não encontrado")
 		}
 		return nil, err
@@ -87,8 +100,8 @@ func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*domain.Usuario, error) {
 func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*domain.Usuario, error) {
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("user not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("usuário não encontrado")
 		}
 		return nil, err
 	}
@@ -105,29 +118,26 @@ func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*do
 	if updateData.IdiomaPreferido != "" {
 		user.IdiomaPreferido = updateData.IdiomaPreferido
 	}
-
 	user.UpdatedAt = time.Now()
 
-	err = uc.userRepo.Update(user)
-	if err != nil {
-		return nil, errors.New("failed to update user")
+	if _, err = uc.userRepo.Update(user); err != nil {
+		return nil, errors.New("falha ao atualizar o usuário")
 	}
 
 	return user, nil
 }
 
 func (uc *UserUseCase) DeleteUser(id uuid.UUID) error {
-	user, err := uc.userRepo.GetByID(id)
+	_, err := uc.userRepo.GetByID(id)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.New("user not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("usuário não encontrado")
 		}
 		return err
 	}
 
-	err = uc.userRepo.Delete(user)
-	if err != nil {
-		return errors.New("failed to delete user")
+	if err := uc.userRepo.Delete(id); err != nil {
+		return errors.New("falha ao deletar o usuário")
 	}
 
 	return nil

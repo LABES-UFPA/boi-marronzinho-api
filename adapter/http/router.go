@@ -4,6 +4,7 @@ import (
 	"boi-marronzinho-api/adapter/http/handler"
 	"boi-marronzinho-api/adapter/http/router"
 	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
@@ -31,8 +32,10 @@ func StartServer(lc fx.Lifecycle, r *gin.Engine) {
 func RegisterRoutes(
 	r *gin.Engine,
 	userHandler *handler.UserHandler,
+	doacaoHandler *handler.DoacaoHandler,
 ) {
 	router.SetupUserRoutes(r, userHandler)
+	router.SetupDoacaoRoutes(r, doacaoHandler)
 }
 
 func SetupRouter() *gin.Engine {
