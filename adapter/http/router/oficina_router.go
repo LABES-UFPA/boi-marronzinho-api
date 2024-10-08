@@ -13,6 +13,9 @@ func SetupOficinaRoutes(router *gin.Engine, oficinaHandler *handler.OficinaHandl
 	{
 		protectedGroup.POST("/inscricao", oficinaHandler.InscricaoOficina)
 		protectedGroup.GET("/lista-oficinas", oficinaHandler.ListaOficinas)
+		
+		protectedGroup.GET("/meus-tickets", oficinaHandler.ListaTicketsPorUsuario)
+
 		protectedGroup.POST("/cria-oficinas", auth.RoleAuthMiddleware(getRole()), oficinaHandler.CriaOficina)
 	}
 }
