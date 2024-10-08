@@ -2,15 +2,20 @@ package repository
 
 import (
 	"boi-marronzinho-api/domain"
+	"boi-marronzinho-api/dto"
+	"bytes"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/skip2/go-qrcode" // Biblioteca para gerar QR Code
 	"gorm.io/gorm"
 )
 
 type OficinaRepository interface {
 	Repository[domain.Oficinas]
 	InscreverParticipante(oficinaID uuid.UUID, usuario *domain.Usuario, pagamentoEmBoicoins bool) error
+	BuscarUsuarioPorCodigo(codigoTicket string) (*domain.Usuario, error) // Nova função para buscar usuário por código
+	GetTicketsByUsuarioID(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error)
 }
 
 type oficinaRepository struct {
@@ -41,8 +46,6 @@ func (r *oficinaRepository) InscreverParticipante(oficinaID uuid.UUID, usuario *
 			Descricao:     "Inscrição na oficina " + oficina.Nome,
 			DataTransacao: time.Now(),
 			OficinaID:     &oficina.ID,
-			DoacaoID:      nil,
-			PedidoID:      nil,
 		}
 
 		if err := r.db.Create(&transacao).Error; err != nil {
@@ -55,12 +58,24 @@ func (r *oficinaRepository) InscreverParticipante(oficinaID uuid.UUID, usuario *
 		return err
 	}
 
+	codigoTicket := uuid.New().String()
+
+	var png []byte
+	png, err := qrcode.Encode(codigoTicket, qrcode.Medium, 256)
+	if err != nil {
+		return err
+	}
+
+	var qrCodeBuffer bytes.Buffer
+	qrCodeBuffer.Write(png)
+
 	inscricao := domain.TicketOficina{
-		ID:            uuid.New(),
-		UsuarioID:     usuario.ID,
-		OficinaID:     oficina.ID,
-		Codigo:        uuid.New().String(),
-		DataInscricao: time.Now(),
+		ID:        uuid.New(),
+		UsuarioID: usuario.ID,
+		OficinaID: oficina.ID,
+		Codigo:    codigoTicket,
+		QRCode:    qrCodeBuffer.Bytes(),
+		CreatedAt: time.Now(),
 	}
 
 	if err := r.db.Create(&inscricao).Error; err != nil {
@@ -79,4 +94,35 @@ func (r *oficinaRepository) InscreverParticipante(oficinaID uuid.UUID, usuario *
 	}
 
 	return nil
+}
+
+func (r *oficinaRepository) BuscarUsuarioPorCodigo(codigoTicket string) (*domain.Usuario, error) {
+	var ticket domain.TicketOficina
+
+	if err := r.db.Where("codigo = ?", codigoTicket).First(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	var usuario domain.Usuario
+	if err := r.db.Where("id = ?", ticket.UsuarioID).First(&usuario).Error; err != nil {
+		return nil, err
+	}
+
+	return &usuario, nil
+}
+
+func (r *oficinaRepository) GetTicketsByUsuarioID(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error) {
+	var results []dto.VoucherResponseDTO
+
+	err := r.db.Table("ticket_oficina").
+		Select("ticket_oficina.id, ticket_oficina.usuario_id, ticket_oficina.oficina_id, ticket_oficina.qr_code, ticket_oficina.created_at, oficinas.nome AS nome_oficina, oficinas.descricao AS descricao").
+		Joins("JOIN oficinas ON ticket_oficina.oficina_id = oficinas.id").
+		Where("ticket_oficina.usuario_id = ?", usuarioID).
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
