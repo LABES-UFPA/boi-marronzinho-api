@@ -44,6 +44,8 @@ func InitDB() *gorm.DB {
 		}).WithError(err).Fatal("Failed to connect to database")
 	}
 
+	DB.Exec("SET search_path TO boi_marronzinho, public")
+
 	logrus.Info("Database connected successfully")
 	return DB
 }
