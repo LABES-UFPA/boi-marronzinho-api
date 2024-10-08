@@ -3,7 +3,10 @@ package usecase
 import (
 	"boi-marronzinho-api/adapter/repository"
 	"boi-marronzinho-api/domain"
+	"boi-marronzinho-api/dto"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 type OficinaUseCase struct {
@@ -61,4 +64,13 @@ func (o *OficinaUseCase) InscricaoOficina(inscricaoRequest *domain.ParticipanteO
 	}
 
 	return inscricaoRequest, nil
+}
+
+func (o *OficinaUseCase) ListarTicketsPorUsuario(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error) {
+	tickets, err := o.oficinaRepo.GetTicketsByUsuarioID(usuarioID)
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }
