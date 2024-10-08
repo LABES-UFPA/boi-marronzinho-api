@@ -4,6 +4,7 @@ import (
 	"boi-marronzinho-api/adapter/http"
 	"boi-marronzinho-api/module/boicoin"
 	"boi-marronzinho-api/module/doacao"
+	"boi-marronzinho-api/module/oficina"
 	"boi-marronzinho-api/module/user"
 	"boi-marronzinho-api/postgres"
 
@@ -17,6 +18,7 @@ func main() {
 		user.UserModule,
 		doacao.DoacaoModule,
 		boicoin.BoincoinModule,
+		oficina.OficnaModule,
 		fx.Invoke(http.RegisterRoutes),
 	)
 
