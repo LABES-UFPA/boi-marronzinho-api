@@ -67,3 +67,25 @@ func (oh *OficinaHandler) InscricaoOficina(c *gin.Context) {
 
 	c.JSON(http.StatusOK, inscricao)
 }
+
+ func (oh *OficinaHandler) ListaTicketsPorUsuario(c *gin.Context) {
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuário não autenticado"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de usuário inválido"})
+		return
+	}
+
+	tickets, err := oh.OficinaUseCase.ListarTicketsPorUsuario(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, tickets)
+}
