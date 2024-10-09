@@ -3,6 +3,7 @@ package handler
 import (
 	"boi-marronzinho-api/core/usecase"
 	"boi-marronzinho-api/domain"
+	"boi-marronzinho-api/dto"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -88,4 +89,23 @@ func (oh *OficinaHandler) InscricaoOficina(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tickets)
+}
+
+
+func (oh *OficinaHandler) ScannerQRCode(c *gin.Context) {
+	var voucherDTO *dto.ValidaVoucherDTO
+
+	if err := c.ShouldBindJSON(&voucherDTO); err!= nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+
+	valido, err := oh.OficinaUseCase.ValidaVoucher(&voucherDTO.IdVoucher)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+	}
+
+	c.JSON(http.StatusOK, valido)
 }
