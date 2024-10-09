@@ -74,3 +74,19 @@ func (o *OficinaUseCase) ListarTicketsPorUsuario(usuarioID uuid.UUID) ([]dto.Vou
 
 	return tickets, nil
 }
+
+
+func (o *OficinaUseCase) ValidaVoucher(codigoVoucher *string) (*dto.VoucherValidation, error) {
+
+	validado, err := o.oficinaRepo.ValidaVoucher(codigoVoucher)
+	if err!= nil {
+        return nil, err
+    }
+
+	validadoResponse := &dto.VoucherValidation{
+		IDVoucher: *codigoVoucher,
+		Validado: validado.Validado,
+	}
+
+	return validadoResponse, nil
+}
