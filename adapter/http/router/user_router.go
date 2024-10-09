@@ -3,6 +3,7 @@ package router
 import (
 	"boi-marronzinho-api/adapter/http/handler"
 	"boi-marronzinho-api/auth"
+	"boi-marronzinho-api/global/enums"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,3 +23,12 @@ func SetupUserRoutes(router *gin.Engine, userHandler *handler.UserHandler) {
 		protectedGroup.GET("/:id", userHandler.GetUser)
 	}
 }
+
+func getRole() string {
+	role, err := enums.GetUserRole(1)
+	if err != nil {
+		return "Role desconhecida"
+	}
+	return role
+}
+

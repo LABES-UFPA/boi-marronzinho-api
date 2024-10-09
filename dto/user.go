@@ -1,6 +1,6 @@
 package dto
 
-import "boi-marronzinho-api/domain"
+import "github.com/google/uuid"
 
 type LoginDTO struct {
 	Email    string `json:"email"`
@@ -8,6 +8,18 @@ type LoginDTO struct {
 }
 
 type LoginResponseDTO struct {
-	Usuario *domain.Usuario
-	Token   *string `json:"token"`
+	ID            uuid.UUID `json:"id"`
+	FirstName     string    `json:"firstName"`
+	LastName      string    `json:"lastName"`
+	Email         string    `json:"email"`
+	SaldoBoicoins float32   `json:"saldoBoicoins"`
+	Token         *string   `json:"token"`
+}
+
+type UsuarioResponseDTO struct {
+	ID            uuid.UUID `json:"id"`
+	FirstName     string    `json:"firstName"`
+	LastName      string    `json:"lastName"`
+	Email         string    `json:"email"`
+	SaldoBoicoins float32   `json:"saldoBoicoins"`
 }

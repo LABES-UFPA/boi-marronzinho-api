@@ -13,10 +13,11 @@ type Usuario struct {
 	FirstName            string         `json:"firstName" validate:"required"`
 	LastName             string         `json:"lastName" validate:"required"`
 	Email                string         `json:"email" validate:"required"`
-	TipoUsuario          string         `json:"tipoUsuario" validate:"required"`
-	IdiomaPreferido      string         `json:"idiomaPreferido" validate:"required"`
+	TipoUsuario          string         `json:"tipoUsuario"`
+	IdiomaPreferido      string         `json:"idiomaPreferido"`
 	Password             string         `json:"password" validate:"required" gorm:"-"`
 	PasswordHash         string         `json:"-" validate:"required,min=1,max=255"`
+	SaldoBoicoins        float32        `json:"-"`
 	LastLogin            *time.Time     `json:"-"`
 	PasswordResetToken   *string        `json:"-"`
 	PasswordResetExpires *time.Time     `json:"-"`

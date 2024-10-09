@@ -7,15 +7,15 @@ import (
 )
 
 type BoicoinsTransacoes struct {
-	ID            uuid.UUID     `json:"id" gorm:"primaryKey"`
-	UsuarioID     uuid.UUID     `json:"usuarioID"`
-	Quantidade    float64       `json:"quantidade"`
-	TipoTransacao string        `json:"tipoTransacao"`
-	Descricao     string        `json:"descricao"`
-	DataTransacao time.Time     `json:"dataTransacao"`
-	PedidoID      uuid.NullUUID `json:"pedidoId"`
-	DoacaoID      uuid.NullUUID `json:"doacaoId"`
-	PontoMapaID   uuid.NullUUID `json:"pontoMapaId"`
+	ID            uuid.UUID  `json:"id" gorm:"primaryKey"`
+	UsuarioID     uuid.UUID  `json:"usuarioID"`
+	Quantidade    float64    `json:"quantidade"`
+	TipoTransacao string     `json:"tipoTransacao"`
+	Descricao     string     `json:"descricao"`
+	DataTransacao time.Time  `json:"dataTransacao"`
+	PedidoID      *uuid.UUID `json:"pedidoId"`
+	DoacaoID      *uuid.UUID `json:"doacaoId"`
+	OficinaID     *uuid.UUID `json:"oficinaId"`
 }
 
 func (b *BoicoinsTransacoes) TableName() string {

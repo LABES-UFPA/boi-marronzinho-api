@@ -1,4 +1,3 @@
--- Enum para Tipo de Usuário
 CREATE TYPE tipo_usuario_enum AS ENUM (
     'Cliente',
     'Administrador',
@@ -7,7 +6,6 @@ CREATE TYPE tipo_usuario_enum AS ENUM (
 
 COMMENT ON TYPE tipo_usuario_enum IS 'Define os tipos de usuários permitidos no sistema.';
 
--- Enum para Status do Pedido
 CREATE TYPE status_pedido_enum AS ENUM (
     '1',  -- Em andamento
     '2',  -- Concluído
@@ -135,7 +133,6 @@ CREATE TABLE doacoes (
 
 COMMENT ON TABLE doacoes IS 'Tabela que armazena as doações realizadas pelos usuários.';
 
--- Tabela de Tickets para Produtos
 CREATE TABLE ticket_produto (
     id UUID PRIMARY KEY,
     usuario_id UUID REFERENCES usuarios(id),
@@ -147,7 +144,6 @@ CREATE TABLE ticket_produto (
 
 COMMENT ON TABLE ticket_produto IS 'Tabela que armazena os tickets de compra de produtos usando Boicoins.';
 
--- Tabela de Tickets para Oficinas
 CREATE TABLE ticket_oficina (
     id UUID PRIMARY KEY,
     usuario_id UUID REFERENCES usuarios(id),
@@ -158,7 +154,6 @@ CREATE TABLE ticket_oficina (
 
 COMMENT ON TABLE ticket_oficina IS 'Tabela que armazena os tickets de inscrição em oficinas.';
 
--- Tabela de Pedidos (compra de produtos)
 CREATE TABLE pedidos (
     id UUID PRIMARY KEY,
     usuario_id UUID REFERENCES usuarios(id),

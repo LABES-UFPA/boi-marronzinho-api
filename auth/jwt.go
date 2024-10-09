@@ -12,7 +12,7 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type Claims struct {
-	ID       uuid.UUID `json:"id"`
+	UserID   uuid.UUID `json:"id"`
 	Username string    `json:"username"`
 	Role     string    `json:"role"`
 	jwt.RegisteredClaims
@@ -21,7 +21,7 @@ type Claims struct {
 func GenerateJWT(user *domain.Usuario) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 	claims := &Claims{
-		ID:       user.ID,
+		UserID:       user.ID,
 		Username: user.FirstName,
 		Role:     user.TipoUsuario,
 		RegisteredClaims: jwt.RegisteredClaims{

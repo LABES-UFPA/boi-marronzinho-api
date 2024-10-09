@@ -46,6 +46,11 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		CreatedAt:       time.Now(),
 	}
 
+	err = user.Validate()
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err = uc.userRepo.Create(user); err != nil {
 		return nil, err
 	}
@@ -72,21 +77,18 @@ func (uc *UserUseCase) Login(email, password string) (*dto.LoginResponseDTO, err
 	}
 
 	userResponse := &dto.LoginResponseDTO{
-		Token: &token,
-		Usuario: &domain.Usuario{
-			ID:              user.ID,
-			FirstName:       user.FirstName,
-			LastName:        user.LastName,
-			Email:           user.Email,
-			TipoUsuario:     user.TipoUsuario,
-			IdiomaPreferido: user.IdiomaPreferido,
-		},
+		Token:         &token,
+		ID:            user.ID,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		SaldoBoicoins: user.SaldoBoicoins,
 	}
 
 	return userResponse, nil
 }
 
-func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*domain.Usuario, error) {
+func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*dto.UsuarioResponseDTO, error) {
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -94,7 +96,14 @@ func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*domain.Usuario, error) {
 		}
 		return nil, err
 	}
-	return user, nil
+
+	return &dto.UsuarioResponseDTO{
+		ID:            user.ID,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		SaldoBoicoins: user.SaldoBoicoins,
+	}, nil
 }
 
 func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*domain.Usuario, error) {
