@@ -7,3 +7,14 @@ type VoucherResponseDTO struct {
 	Descricao   string `json:"descricao"`
 	QRCode      []byte `json:"qrcode"`
 }
+
+
+type ValidaVoucherDTO struct {
+	IdVoucher string `json:"idVoucher"`
+}
+
+
+type VoucherValidation struct {
+	IDVoucher string `json:"idVoucher"`
+	Validado bool   `json:"validado"`
+}
