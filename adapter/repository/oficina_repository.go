@@ -4,6 +4,7 @@ import (
 	"boi-marronzinho-api/domain"
 	"boi-marronzinho-api/dto"
 	"bytes"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +17,8 @@ type OficinaRepository interface {
 	InscreverParticipante(oficinaID uuid.UUID, usuario *domain.Usuario, pagamentoEmBoicoins bool) error
 	BuscarUsuarioPorCodigo(codigoTicket string) (*domain.Usuario, error) // Nova função para buscar usuário por código
 	GetTicketsByUsuarioID(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error)
+	ValidaVoucher(codigo *string) (*domain.TicketOficina, error)
+
 }
 
 type oficinaRepository struct {
@@ -125,4 +128,23 @@ func (r *oficinaRepository) GetTicketsByUsuarioID(usuarioID uuid.UUID) ([]dto.Vo
 	}
 
 	return results, nil
+}
+
+func (r *oficinaRepository) ValidaVoucher(codigoVoucher *string) (*domain.TicketOficina, error) {
+	var ticket domain.TicketOficina
+
+	if err := r.db.Where("codigo = ?", *codigoVoucher).First(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	if ticket.Validado {
+		return nil, errors.New("o ticket já foi validado")
+	}
+
+	ticket.Validado = true
+	if err := r.db.Save(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
 }
