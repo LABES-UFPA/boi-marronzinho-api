@@ -21,6 +21,7 @@ func SetupUserRoutes(router *gin.Engine, userHandler *handler.UserHandler) {
 		protectedGroup.DELETE("/:id", userHandler.DeleteUser)
 		protectedGroup.PUT("/:id", userHandler.UpdateUser)
 		protectedGroup.GET("/:id", userHandler.GetUser)
+		protectedGroup.GET("/extrato/:id", userHandler.GetExtratoBoicoin)
 	}
 }
 
