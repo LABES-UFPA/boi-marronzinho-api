@@ -151,3 +151,21 @@ func (uc *UserUseCase) DeleteUser(id uuid.UUID) error {
 
 	return nil
 }
+
+
+func (uc *UserUseCase) GetExtrato(id uuid.UUID) ([]*domain.BoicoinsTransacoes, error) {
+	user, err := uc.userRepo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("usuário não encontrado")
+		}
+		return nil, err
+	}
+
+	extrato, err := uc.userRepo.GetExtrato(user.ID)
+	if err!= nil {
+        return nil, err
+    }
+
+	return extrato, nil
+}

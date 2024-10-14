@@ -115,3 +115,22 @@ func (uh *UserHandler) DeleteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "usuário deletado com sucesso!"})
 }
+
+
+func (uh *UserHandler) GetExtratoBoicoin(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID do usuario é inválido"})
+		return
+	}
+
+	extrato, err := uh.UserUseCase.GetExtrato(id)
+	if err!= nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+	c.JSON(http.StatusOK, extrato)
+
+}
