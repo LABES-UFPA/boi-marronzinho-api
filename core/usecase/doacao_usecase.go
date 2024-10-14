@@ -32,62 +32,50 @@ func NewDoacaoUseCase(
 }
 
 func (duc *DoacaoUseCase) AdicionaDoacao(doacaoRequest *domain.Doacoes) (*domain.Doacoes, error) {
-	var resultDoacao *domain.Doacoes
-
-	err := duc.doacaoRepo.WithTransaction(func(txRepo repository.Repository[domain.Doacoes]) error {
-		itemDoacao, err := duc.itemDoacaoRepo.GetByID(doacaoRequest.ItemDoacaoID)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return errors.New("item de doação não encontrado")
-			}
-			return err
+	itemDoacao, err := duc.itemDoacaoRepo.GetByID(doacaoRequest.ItemDoacaoID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("item de doação não encontrado")
 		}
+		return nil, err
+	}
 
-		boicoinsRecebidos, err := calculaBoicoins(itemDoacao.BoicoinsPorUnidade, doacaoRequest.Quantidade)
-		if err != nil {
-			return err
-		}
-
-		doacao := &domain.Doacoes{
-			ID:                uuid.New(),
-			UsuarioID:         doacaoRequest.UsuarioID,
-			ItemDoacaoID:      doacaoRequest.ItemDoacaoID,
-			Quantidade:        doacaoRequest.Quantidade,
-			BoicoinsRecebidos: boicoinsRecebidos,
-			DataDoacao:        time.Now(),
-		}
-
-		createdDoacao, err := duc.doacaoRepo.Create(doacao)
-		if err != nil {
-			return err
-		}
-
-		// transacao := &domain.BoicoinsTransacoes{
-		// 	ID:            uuid.New(),
-		// 	UsuarioID:     doacaoRequest.UsuarioID,
-		// 	Quantidade:    boicoinsRecebidos,
-		// 	TipoTransacao: "recebimento_doacao",
-		// 	Descricao:     "Recebimento de Boicoins por doação de item",
-		// 	DataTransacao: time.Now(),
-		// 	DoacaoID:      uuid.NullUUID{UUID: createdDoacao.ID, Valid: true},
-		// 	PedidoID:      uuid.NullUUID{Valid: false},
-		// 	PontoMapaID:   uuid.NullUUID{Valid: false},
-		// }
-
-		// if _, err := duc.boicoinRepo.Create(transacao); err != nil {
-		// 	return err
-		// }
-
-		resultDoacao = createdDoacao
-		return nil
-	})
-
+	boicoinsRecebidos, err := calculaBoicoins(itemDoacao.BoicoinsPorUnidade, doacaoRequest.Quantidade)
 	if err != nil {
 		return nil, err
 	}
 
-	return resultDoacao, nil
+	doacao := &domain.Doacoes{
+		ID:                uuid.New(),
+		UsuarioID:         doacaoRequest.UsuarioID,
+		ItemDoacaoID:      doacaoRequest.ItemDoacaoID,
+		Quantidade:        doacaoRequest.Quantidade,
+		BoicoinsRecebidos: boicoinsRecebidos,
+		DataDoacao:        time.Now(),
+	}
+
+	createdDoacao, err := duc.doacaoRepo.Create(doacao)
+	if err != nil {
+		return nil, err
+	}
+
+	transacao := &domain.BoicoinsTransacoes{
+		ID:            uuid.New(),
+		UsuarioID:     createdDoacao.UsuarioID,
+		Quantidade:    +float64(boicoinsRecebidos),
+		TipoTransacao: "recebimento_doacao",
+		Descricao:     "Recebimento de Boicoins por doação de item",
+		DataTransacao: time.Now(),
+		DoacaoID:      &createdDoacao.ID,
+	}
+
+	if _, err := duc.boicoinRepo.Create(transacao); err != nil {
+		return nil, err
+	}
+
+	return createdDoacao, nil
 }
+
 
 func (duc *DoacaoUseCase) CriarItemDoacao(itemDoacaoRequest *domain.ItemDoacao) (*domain.ItemDoacao, error) {
 	itemDoacao := &domain.ItemDoacao{
@@ -96,7 +84,7 @@ func (duc *DoacaoUseCase) CriarItemDoacao(itemDoacaoRequest *domain.ItemDoacao) 
 		UnidadeMedida:      itemDoacaoRequest.UnidadeMedida,
 		BoicoinsPorUnidade: itemDoacaoRequest.BoicoinsPorUnidade,
 	}
-	
+
 	return duc.itemDoacaoRepo.Create(itemDoacao)
 }
 
