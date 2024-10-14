@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/skip2/go-qrcode" // Biblioteca para gerar QR Code
+	"github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
 )
 

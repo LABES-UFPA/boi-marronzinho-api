@@ -12,6 +12,7 @@ type UserRepository interface {
     Repository[domain.Usuario]
     GetByEmail(email string) (*domain.Usuario, error)
     AtualizarSaldo(usuarioID uuid.UUID, boicoinsRecebidos float64) error
+    GetExtrato(usuarioID uuid.UUID)([]*domain.BoicoinsTransacoes, error)
 }
 
 type userRepository struct {
@@ -44,4 +45,12 @@ func (ur *userRepository) AtualizarSaldo(usuarioID uuid.UUID, boicoinsRecebidos 
         return errors.New("usuário não encontrado ou saldo não atualizado")
     }
     return nil
+}
+
+func (ur *userRepository) GetExtrato(usuarioID uuid.UUID)([]*domain.BoicoinsTransacoes, error) {
+    var transacoes []*domain.BoicoinsTransacoes
+    if err := ur.db.Where("usuario_id =?", usuarioID).Find(&transacoes).Error; err!= nil {
+        return nil, err
+    }
+    return transacoes, nil
 }
