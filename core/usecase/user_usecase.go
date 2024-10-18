@@ -41,8 +41,8 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		LastName:        usuarioRequest.LastName,
 		Email:           usuarioRequest.Email,
 		PasswordHash:    string(hashedPassword),
-		TipoUsuario:     usuarioRequest.TipoUsuario,
-		IdiomaPreferido: usuarioRequest.IdiomaPreferido,
+		TipoUsuario:     "Usuário", //usuarioRequest.TipoUsuario,
+		IdiomaPreferido: "pt-BR",   //usuarioRequest.IdiomaPreferido,
 		CreatedAt:       time.Now(),
 	}
 
@@ -106,6 +106,55 @@ func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*dto.UsuarioResponseDTO, error
 	}, nil
 }
 
+func (uc *UserUseCase) GetUsersByFullName(name string) ([]*dto.UsuarioResponseDTO, error) {
+	users, err := uc.userRepo.GetByFullName(name)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("usuário não encontrado")
+		}
+		return nil, err
+	}
+
+	userDTOs := make([]*dto.UsuarioResponseDTO, 0, len(users))
+	for _, user := range users {
+		userDTO := &dto.UsuarioResponseDTO{
+			ID:            user.ID,
+			FirstName:     user.FirstName,
+			LastName:      user.LastName,
+			Email:         user.Email,
+			SaldoBoicoins: user.SaldoBoicoins,
+		}
+		userDTOs = append(userDTOs, userDTO)
+	}
+
+	return userDTOs, nil
+}
+
+func (uc *UserUseCase) GetAllUsers() ([]*dto.UsuarioResponseDTO, error) {
+	users, err := uc.userRepo.GetAll()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("usuário não encontrado")
+		}
+		return nil, err
+	}
+
+	allUsers := make([]*dto.UsuarioResponseDTO, 0, len(users))
+
+	for _, i := range users {
+		userDTO := &dto.UsuarioResponseDTO{
+			ID:            i.ID,
+			FirstName:     i.FirstName,
+			LastName:      i.LastName,
+			Email:         i.Email,
+			SaldoBoicoins: i.SaldoBoicoins,
+		}
+		allUsers = append(allUsers, userDTO)
+	}
+
+	return allUsers, nil
+}
+
 func (uc *UserUseCase) UpdateUser(id uuid.UUID, updateData *domain.Usuario) (*domain.Usuario, error) {
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
@@ -152,7 +201,6 @@ func (uc *UserUseCase) DeleteUser(id uuid.UUID) error {
 	return nil
 }
 
-
 func (uc *UserUseCase) GetExtrato(id uuid.UUID) ([]*domain.BoicoinsTransacoes, error) {
 	user, err := uc.userRepo.GetByID(id)
 	if err != nil {
@@ -163,9 +211,9 @@ func (uc *UserUseCase) GetExtrato(id uuid.UUID) ([]*domain.BoicoinsTransacoes, e
 	}
 
 	extrato, err := uc.userRepo.GetExtrato(user.ID)
-	if err!= nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	return extrato, nil
 }
