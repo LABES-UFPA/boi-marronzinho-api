@@ -14,9 +14,9 @@ type Oficinas struct {
 	PrecoBoicoins       float64   `json:"precoBoicoins" validate:"gt=0"`
 	PrecoReal           float64   `json:"precoReal" validate:"gt=0"`
 	DataEvento          time.Time `json:"dataEvento" validate:"required"`
-	LimiteParticipantes int       `json:"limiteParticipantes" validate:"gt=0"`
+	LimiteParticipantes *int      `json:"limiteParticipantes" validate:"gt=0"`
 	ParticipantesAtual  int       `json:"participantesAtual"`
-	PontoMapaID         uuid.UUID `json:"pontoMapaId" validate:"required"`
+	Imagem              []byte    `json:"imagem"`
 	CriadoEm            time.Time `json:"-"`
 }
 

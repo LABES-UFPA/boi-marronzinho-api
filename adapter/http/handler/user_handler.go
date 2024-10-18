@@ -72,7 +72,69 @@ func (uh *UserHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+func (uh *UserHandler) GetAllUsers(c *gin.Context) {
+	user, err := uh.UserUseCase.GetAllUsers()
+	if err != nil {
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (uh *UserHandler) GetUsersByName(c *gin.Context) {
+	name := c.Query("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "O parâmetro 'name' é obrigatório"})
+		return
+	}
+
+	// Chamar o UseCase para buscar usuários pelo nome
+	users, err := uh.UserUseCase.GetUsersByFullName(name)
+	if err != nil {
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 func (uh *UserHandler) UpdateUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID do usuario é inválido"})
+		return
+	}
+
+	var updateData domain.Usuario
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		return
+	}
+
+	updatedUser, err := uh.UserUseCase.UpdateUser(id, &updateData)
+	if err != nil {
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "usuário não encontrado"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedUser)
+}
+
+func (uh *UserHandler) UpdatePermissao(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -116,7 +178,6 @@ func (uh *UserHandler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "usuário deletado com sucesso!"})
 }
 
-
 func (uh *UserHandler) GetExtratoBoicoin(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -126,10 +187,10 @@ func (uh *UserHandler) GetExtratoBoicoin(c *gin.Context) {
 	}
 
 	extrato, err := uh.UserUseCase.GetExtrato(id)
-	if err!= nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, extrato)
 

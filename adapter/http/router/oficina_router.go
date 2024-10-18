@@ -17,5 +17,7 @@ func SetupOficinaRoutes(router *gin.Engine, oficinaHandler *handler.OficinaHandl
 
 		protectedGroup.POST("/cria-oficinas", auth.RoleAuthMiddleware(getRole()), oficinaHandler.CriaOficina)
 		protectedGroup.POST("/scanner-voucher", auth.RoleAuthMiddleware(getRole()), oficinaHandler.ScannerQRCode)
+		protectedGroup.DELETE("/deleta-oficinas", auth.RoleAuthMiddleware(getRole()), oficinaHandler.DeleteOficina)
+		protectedGroup.PUT("/atualiza-oficinas", auth.RoleAuthMiddleware(getRole()), oficinaHandler.UpdateOficina)
 	}
 }
