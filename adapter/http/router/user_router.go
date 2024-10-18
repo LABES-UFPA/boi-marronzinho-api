@@ -22,6 +22,9 @@ func SetupUserRoutes(router *gin.Engine, userHandler *handler.UserHandler) {
 		protectedGroup.PUT("/:id", userHandler.UpdateUser)
 		protectedGroup.GET("/:id", userHandler.GetUser)
 		protectedGroup.GET("/extrato/:id", userHandler.GetExtratoBoicoin)
+		protectedGroup.PUT("/permissao/:id", auth.RoleAuthMiddleware(getRole()), userHandler.UpdatePermissao)
+		protectedGroup.GET("todos-usuarios", auth.RoleAuthMiddleware(getRole()), userHandler.GetAllUsers)
+		protectedGroup.GET("filtro", auth.RoleAuthMiddleware(getRole()), userHandler.GetUsersByName)
 	}
 }
 
@@ -32,4 +35,3 @@ func getRole() string {
 	}
 	return role
 }
-
