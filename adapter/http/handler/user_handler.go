@@ -93,7 +93,6 @@ func (uh *UserHandler) GetUsersByName(c *gin.Context) {
 		return
 	}
 
-	// Chamar o UseCase para buscar usuários pelo nome
 	users, err := uh.UserUseCase.GetUsersByFullName(name)
 	if err != nil {
 		if err.Error() == "user not found" {
