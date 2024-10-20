@@ -10,8 +10,9 @@ type Doacoes struct {
 	ID                uuid.UUID `json:"id" gorm:"primaryKey"`
 	UsuarioID         uuid.UUID `json:"usuarioId"`
 	ItemDoacaoID      uuid.UUID `json:"itemDoacaoId"`
-	Quantidade        int64     `json:"quantidade"`
+	Quantidade        float64   `json:"quantidade"`
 	BoicoinsRecebidos float64   `json:"boicoinsRecebidos"`
+	Status            string    `json:"status"` // Novo campo para status ("pendente", "validada", "rejeitada")
 	DataDoacao        time.Time `json:"dataDoacao"`
 }
 
