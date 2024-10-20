@@ -12,6 +12,7 @@ func SetupDoacaoRoutes(router *gin.Engine, doacaoHandler *handler.DoacaoHandler)
 	protectedGroup.Use(auth.JWTAuthMiddleware())
 	{
 		protectedGroup.POST("", doacaoHandler.AdicionaDoacao)
+		protectedGroup.GET("/itens-doacao", doacaoHandler.ItensDoacao)
 		protectedGroup.POST("/adiciona-item-doacao", auth.RoleAuthMiddleware(auth.GetRole()), doacaoHandler.CriaItemDoacao)
 		protectedGroup.PUT("/:id", auth.RoleAuthMiddleware(auth.GetRole()), doacaoHandler.AtualizaItemDoacao)
 		protectedGroup.DELETE("/:id", auth.RoleAuthMiddleware(auth.GetRole()), doacaoHandler.DeletaItemDoacao)

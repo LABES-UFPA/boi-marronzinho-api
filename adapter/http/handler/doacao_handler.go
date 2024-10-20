@@ -69,6 +69,16 @@ func (dh *DoacaoHandler) CriaItemDoacao(c *gin.Context) {
 	c.JSON(http.StatusOK, itemDoacao)
 }
 
+func (dh *DoacaoHandler) ItensDoacao(c *gin.Context) {
+	itensDoacao, err := dh.DoacaoUseCase.TodosItensDoacao()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, itensDoacao)
+}
+
 func (dh *DoacaoHandler) AtualizaItemDoacao(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
