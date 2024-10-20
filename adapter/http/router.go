@@ -34,10 +34,12 @@ func RegisterRoutes(
 	userHandler *handler.UserHandler,
 	doacaoHandler *handler.DoacaoHandler,
 	oficinaHandler *handler.OficinaHandler,
+	carteiraHandler *handler.CarteiraHandler,
 ) {
 	router.SetupUserRoutes(r, userHandler)
 	router.SetupDoacaoRoutes(r, doacaoHandler)
 	router.SetupOficinaRoutes(r, oficinaHandler)
+	router.SetupCarteiraRoutes(r, carteiraHandler)
 }
 
 func SetupRouter() *gin.Engine {

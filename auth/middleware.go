@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"boi-marronzinho-api/global/enums"
 	"net/http"
 	"strings"
 
@@ -41,4 +42,12 @@ func RoleAuthMiddleware(requiredRole string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func GetRole() string {
+	role, err := enums.GetUserRole(1)
+	if err != nil {
+		return "Role desconhecida"
+	}
+	return role
 }

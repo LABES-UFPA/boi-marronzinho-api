@@ -17,7 +17,7 @@ func main() {
 		http.RouterModule(),
 		user.UserModule,
 		doacao.DoacaoModule,
-		boicoin.BoincoinModule,
+		boicoin.BoicoinModule,
 		oficina.OficnaModule,
 		fx.Invoke(http.RegisterRoutes),
 	)
