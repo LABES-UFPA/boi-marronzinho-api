@@ -13,7 +13,7 @@ func SetupOficinaRoutes(router *gin.Engine, oficinaHandler *handler.OficinaHandl
 	{
 		protectedGroup.POST("/inscricao", oficinaHandler.InscricaoOficina)
 		protectedGroup.GET("/lista-oficinas", oficinaHandler.ListaOficinas)
-		protectedGroup.GET("/meus-tickets", oficinaHandler.ListaTicketsPorUsuario)
+		protectedGroup.GET("/meus-tickets/:id", oficinaHandler.ListaTicketsPorUsuario)
 
 		protectedGroup.POST("/cria-oficinas", auth.RoleAuthMiddleware(auth.GetRole()), oficinaHandler.CriaOficina)
 		protectedGroup.POST("/scanner-voucher", auth.RoleAuthMiddleware(auth.GetRole()), oficinaHandler.ScannerQRCode)

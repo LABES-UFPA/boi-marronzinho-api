@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,45 +23,52 @@ func NewOficinaHandler(ouc *usecase.OficinaUseCase) *OficinaHandler {
 }
 
 func (oh *OficinaHandler) CriaOficina(c *gin.Context) {
-	var oficinaDTO domain.Oficinas
+    var oficinaDTO domain.Oficinas
 
-	if err := c.ShouldBind(&oficinaDTO); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao processar dados da oficina: " + err.Error()})
-		return
-	}
+    oficinaDTO.Nome = c.PostForm("nome")
+    oficinaDTO.Descricao = c.PostForm("descricao")
+    precoBoicoins, _ := strconv.ParseFloat(c.PostForm("precoBoicoins"), 64)
+    oficinaDTO.PrecoBoicoins = precoBoicoins
+    precoReal, _ := strconv.ParseFloat(c.PostForm("precoReal"), 64)
+    oficinaDTO.PrecoReal = precoReal
+    dataEvento, _ := time.Parse(time.RFC3339, c.PostForm("dataEvento"))
+    oficinaDTO.DataEvento = dataEvento
+    limiteParticipantes, _ := strconv.Atoi(c.PostForm("limiteParticipantes"))
+    oficinaDTO.LimiteParticipantes = &limiteParticipantes
+    oficinaDTO.LinkEndereco = c.PostForm("linkEndereco")
 
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Falha ao receber o arquivo de imagem"})
-		return
-	}
+    file, err := c.FormFile("file")
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Falha ao receber o arquivo de imagem"})
+        return
+    }
 
-	fileContent, err := file.Open()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao abrir o arquivo de imagem"})
-		return
-	}
-	defer fileContent.Close()
+    fileContent, err := file.Open()
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao abrir o arquivo de imagem"})
+        return
+    }
+    defer fileContent.Close()
 
-	imageData, err := io.ReadAll(fileContent)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao ler o arquivo de imagem"})
-		return
-	}
+    imageData, err := io.ReadAll(fileContent)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao ler o arquivo de imagem"})
+        return
+    }
 
-	oficinaDTO.Imagem = imageData
+    oficinaDTO.Imagem = imageData
+    oficinaDTO.ID = uuid.New()
+    oficinaDTO.CriadoEm = time.Now()
 
-	oficinaDTO.ID = uuid.New()
-	oficinaDTO.CriadoEm = time.Now()
+    oficina, err := oh.OficinaUseCase.CriaOficina(&oficinaDTO)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	oficina, err := oh.OficinaUseCase.CriaOficina(&oficinaDTO)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, oficina)
+    c.JSON(http.StatusOK, oficina)
 }
+
 
 func (oh *OficinaHandler) ListaOficinas(c *gin.Context) {
 	oficinas, err := oh.OficinaUseCase.ListaOficinas()

@@ -32,12 +32,12 @@ func StartServer(lc fx.Lifecycle, r *gin.Engine) {
 func RegisterRoutes(
 	r *gin.Engine,
 	userHandler *handler.UserHandler,
-	doacaoHandler *handler.DoacaoHandler,
+	trocaHandler *handler.TrocaHandler,
 	oficinaHandler *handler.OficinaHandler,
 	carteiraHandler *handler.CarteiraHandler,
 ) {
 	router.SetupUserRoutes(r, userHandler)
-	router.SetupDoacaoRoutes(r, doacaoHandler)
+	router.SetupTrocaRoutes(r, trocaHandler)
 	router.SetupOficinaRoutes(r, oficinaHandler)
 	router.SetupCarteiraRoutes(r, carteiraHandler)
 }

@@ -9,34 +9,34 @@ import (
 	"github.com/google/uuid"
 )
 
-type DoacaoHandler struct {
-	DoacaoUseCase *usecase.DoacaoUseCase
+type TrocaHandler struct {
+	TrocaUseCase *usecase.TrocaUseCase
 }
 
-func NewDoacaoHandler(duc *usecase.DoacaoUseCase) *DoacaoHandler {
-	return &DoacaoHandler{DoacaoUseCase: duc}
+func NewTrocaHandler(duc *usecase.TrocaUseCase) *TrocaHandler {
+	return &TrocaHandler{TrocaUseCase: duc}
 }
 
-func (dh *DoacaoHandler) AdicionaDoacao(c *gin.Context) {
-	var doacaoDTO *domain.Doacoes
-	if err := c.ShouldBindJSON(&doacaoDTO); err != nil {
+func (dh *TrocaHandler) RealizarTroca(c *gin.Context) {
+	var trocaDTO *domain.Troca
+	if err := c.ShouldBindJSON(&trocaDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	doacao, err := dh.DoacaoUseCase.AdicionaDoacao(doacaoDTO)
+	troca, err := dh.TrocaUseCase.RealizarTroca(trocaDTO)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, doacao)
+	c.JSON(http.StatusOK, troca)
 }
 
-func (dh *DoacaoHandler) ValidaDoacao(c *gin.Context) {
+func (dh *TrocaHandler) ValidaTroca(c *gin.Context) {
 	var request struct {
-		DoacaoID string `json:"doacaoID"`
-		Validar  bool   `json:"validar"`
+		TrocaID string `json:"trocaID"`
+		Validar bool   `json:"validar"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -44,7 +44,7 @@ func (dh *DoacaoHandler) ValidaDoacao(c *gin.Context) {
 		return
 	}
 
-	_, err := dh.DoacaoUseCase.ValidaDoacao(request.DoacaoID, request.Validar)
+	_, err := dh.TrocaUseCase.ValidaTroca(request.TrocaID, request.Validar)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,33 +53,61 @@ func (dh *DoacaoHandler) ValidaDoacao(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Doação processada com sucesso."})
 }
 
-func (dh *DoacaoHandler) CriaItemDoacao(c *gin.Context) {
-	var itemDoacaoDTO *domain.ItemDoacao
-	if err := c.ShouldBindJSON(&itemDoacaoDTO); err != nil {
+func (dh *TrocaHandler) CriaItemTroca(c *gin.Context) {
+	var itemTrocaDTO *domain.ItemTroca
+	if err := c.ShouldBindJSON(&itemTrocaDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	itemDoacao, err := dh.DoacaoUseCase.CriarItemDoacao(itemDoacaoDTO)
+	itemTroca, err := dh.TrocaUseCase.CriarItemTroca(itemTrocaDTO)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, itemDoacao)
+	c.JSON(http.StatusOK, itemTroca)
 }
 
-func (dh *DoacaoHandler) ItensDoacao(c *gin.Context) {
-	itensDoacao, err := dh.DoacaoUseCase.TodosItensDoacao()
+func (dh *TrocaHandler) ItensDoacao(c *gin.Context) {
+	itensTroca, err := dh.TrocaUseCase.TodosItensTroca()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, itensDoacao)
+	c.JSON(http.StatusOK, itensTroca)
 }
 
-func (dh *DoacaoHandler) AtualizaItemDoacao(c *gin.Context) {
+func (dh *TrocaHandler) AtualizaItemTroca(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID do item de troca é inválido"})
+		return
+	}
+
+	var itemTrocaDTO *domain.ItemTroca
+	if err := c.ShouldBindJSON(&itemTrocaDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	itemTrocaDTO.ID = id
+	itemTroca, err := dh.TrocaUseCase.AtualizaItemTroca(itemTrocaDTO)
+	if err != nil {
+		if err.Error() == "item de troca não encontrado" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item de troca não encontrado"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, itemTroca)
+}
+
+func (dh *TrocaHandler) DeletaItemTroca(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -87,49 +115,21 @@ func (dh *DoacaoHandler) AtualizaItemDoacao(c *gin.Context) {
 		return
 	}
 
-	var itemDoacaoDTO *domain.ItemDoacao
-	if err := c.ShouldBindJSON(&itemDoacaoDTO); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	itemDoacaoDTO.ID = id // Garantir que o ID é o mesmo do parâmetro
-	itemDoacao, err := dh.DoacaoUseCase.AtualizaItemDoacao(itemDoacaoDTO)
-	if err != nil {
-		if err.Error() == "item de doação não encontrado" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "item de doação não encontrado"})
+	if err := dh.TrocaUseCase.DeletarItemTroca(id); err != nil {
+		if err.Error() == "item de troca não encontrado" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "item de troca não encontrado"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, itemDoacao)
-}
-
-func (dh *DoacaoHandler) DeletaItemDoacao(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID do item de doação é inválido"})
-		return
-	}
-
-	if err := dh.DoacaoUseCase.DeletarItemDoacao(id); err != nil {
-		if err.Error() == "item de doação não encontrado" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "item de doação não encontrado"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "item de doação deletado com sucesso"})
+	c.JSON(http.StatusOK, gin.H{"message": "item de troca deletado com sucesso"})
 }
 
 // Captura todos os itens de doação
 // func (dh *DoacaoHandler) CapturaTodosItensDoacao(c *gin.Context) {
-//     itensDoacao, err := dh.DoacaoUseCase.CapturaTodosItensDoacao()
+//     itensDoacao, err := dh.TrocaUseCase.CapturaTodosItensDoacao()
 //     if err != nil {
 //         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 //         return
@@ -147,7 +147,7 @@ func (dh *DoacaoHandler) DeletaItemDoacao(c *gin.Context) {
 //         return
 //     }
 
-//     itemDoacao, err := dh.DoacaoUseCase.CapturaItemDoacao(id)
+//     itemDoacao, err := dh.TrocaUseCase.CapturaItemDoacao(id)
 //     if err != nil {
 //         if err.Error() == "item de doação não encontrado" {
 //             c.JSON(http.StatusNotFound, gin.H{"error": "item de doação não encontrado"})

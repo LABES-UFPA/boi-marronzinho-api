@@ -14,29 +14,29 @@ import (
 	"gorm.io/gorm"
 )
 
-type DoacaoUseCase struct {
-	doacaoRepo     repository.Repository[domain.Doacoes]
-	itemDoacaoRepo repository.Repository[domain.ItemDoacao]
-	userRepo       repository.UserRepository
-	boicoinRepo    repository.BoicoinRepository
+type TrocaUseCase struct {
+	doacaoRepo    repository.Repository[domain.Troca]
+	ItemTrocaRepo repository.Repository[domain.ItemTroca]
+	userRepo      repository.UserRepository
+	boicoinRepo   repository.BoicoinRepository
 }
 
-func NewDoacaoUseCase(
-	doacaoRepo repository.Repository[domain.Doacoes],
-	itemDoacaoRepo repository.Repository[domain.ItemDoacao],
+func NewTrocaUseCase(
+	trocaRepo repository.Repository[domain.Troca],
+	ItemTrocaRepo repository.Repository[domain.ItemTroca],
 	userRepo repository.UserRepository,
 	boicoinRepo repository.BoicoinRepository,
-) *DoacaoUseCase {
-	return &DoacaoUseCase{
-		doacaoRepo:     doacaoRepo,
-		itemDoacaoRepo: itemDoacaoRepo,
-		userRepo:       userRepo,
-		boicoinRepo:    boicoinRepo,
+) *TrocaUseCase {
+	return &TrocaUseCase{
+		doacaoRepo:    trocaRepo,
+		ItemTrocaRepo: ItemTrocaRepo,
+		userRepo:      userRepo,
+		boicoinRepo:   boicoinRepo,
 	}
 }
 
-func (duc *DoacaoUseCase) AdicionaDoacao(doacaoRequest *domain.Doacoes) (*domain.Doacoes, error) {
-	itemDoacao, err := duc.itemDoacaoRepo.GetByID(doacaoRequest.ItemDoacaoID)
+func (duc *TrocaUseCase) RealizarTroca(trocaRequest *domain.Troca) (*domain.Troca, error) {
+	ItemTroca, err := duc.ItemTrocaRepo.GetByID(trocaRequest.ItemTrocaID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("item de doação não encontrado")
@@ -44,16 +44,16 @@ func (duc *DoacaoUseCase) AdicionaDoacao(doacaoRequest *domain.Doacoes) (*domain
 		return nil, err
 	}
 
-	boicoinsRecebidos, err := calculaBoicoins(itemDoacao.BoicoinsPorUnidade, doacaoRequest.Quantidade)
+	boicoinsRecebidos, err := calculaBoicoins(ItemTroca.BoicoinsPorUnidade, trocaRequest.Quantidade)
 	if err != nil {
 		return nil, err
 	}
 
-	doacao := &domain.Doacoes{
+	doacao := &domain.Troca{
 		ID:                uuid.New(),
-		UsuarioID:         doacaoRequest.UsuarioID,
-		ItemDoacaoID:      doacaoRequest.ItemDoacaoID,
-		Quantidade:        doacaoRequest.Quantidade,
+		UsuarioID:         trocaRequest.UsuarioID,
+		ItemTrocaID:       trocaRequest.ItemTrocaID,
+		Quantidade:        trocaRequest.Quantidade,
 		BoicoinsRecebidos: boicoinsRecebidos,
 		DataDoacao:        time.Now(),
 		Status:            "pendente",
@@ -73,7 +73,7 @@ func (duc *DoacaoUseCase) AdicionaDoacao(doacaoRequest *domain.Doacoes) (*domain
 	return createdDoacao, nil
 }
 
-func (duc *DoacaoUseCase) ValidaDoacao(doacaoID string, validar bool) (*domain.Doacoes, error) {
+func (duc *TrocaUseCase) ValidaTroca(doacaoID string, validar bool) (*domain.Troca, error) {
 	doacao, err := duc.doacaoRepo.GetByID(uuid.MustParse(doacaoID))
 	if err != nil {
 		return nil, err
@@ -106,8 +106,7 @@ func (duc *DoacaoUseCase) ValidaDoacao(doacaoID string, validar bool) (*domain.D
 	return doacaoAtualizada, nil
 }
 
-// Função para notificar o administrador por e-mail
-func (duc *DoacaoUseCase) notificarAdministrador(doacao *domain.Doacoes) error {
+func (duc *TrocaUseCase) notificarAdministrador(doacao *domain.Troca) error {
 	m, err := prepararEmailNotificacao(doacao)
 	if err != nil {
 		return fmt.Errorf("erro ao preparar o e-mail: %w", err)
@@ -129,7 +128,7 @@ func (duc *DoacaoUseCase) notificarAdministrador(doacao *domain.Doacoes) error {
 	return nil
 }
 
-func prepararEmailNotificacao(doacao *domain.Doacoes) (*mail.Message, error) {
+func prepararEmailNotificacao(doacao *domain.Troca) (*mail.Message, error) {
 	m := mail.NewMessage()
 	m.SetHeader("From", os.Getenv("SMTP_USER"))
 	m.SetHeader("To", "logancardoso4@gmail.com")
@@ -215,7 +214,7 @@ func prepararEmailNotificacao(doacao *domain.Doacoes) (*mail.Message, error) {
 	`,
 		doacao.ID.String(),
 		doacao.UsuarioID.String(),
-		doacao.ItemDoacaoID.String(),
+		doacao.ItemTrocaID.String(),
 		doacao.Quantidade,
 		doacao.DataDoacao.Format(time.RFC1123),
 		doacao.ID.String(),
@@ -225,29 +224,28 @@ func prepararEmailNotificacao(doacao *domain.Doacoes) (*mail.Message, error) {
 	return m, nil
 }
 
-
-func (duc *DoacaoUseCase) TodosItensDoacao() ([]*domain.ItemDoacao, error) {
-	itensDoacao, err := duc.itemDoacaoRepo.GetAll()
+func (duc *TrocaUseCase) TodosItensTroca() ([]*domain.ItemTroca, error) {
+	itensTroca, err := duc.ItemTrocaRepo.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
-	return itensDoacao, nil
+	return itensTroca, nil
 }
 
-func (duc *DoacaoUseCase) CriarItemDoacao(itemDoacaoRequest *domain.ItemDoacao) (*domain.ItemDoacao, error) {
-	itemDoacao := &domain.ItemDoacao{
+func (duc *TrocaUseCase) CriarItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
+	ItemTroca := &domain.ItemTroca{
 		ID:                 uuid.New(),
-		Descricao:          itemDoacaoRequest.Descricao,
-		UnidadeMedida:      itemDoacaoRequest.UnidadeMedida,
-		BoicoinsPorUnidade: itemDoacaoRequest.BoicoinsPorUnidade,
+		Descricao:          ItemTrocaRequest.Descricao,
+		UnidadeMedida:      ItemTrocaRequest.UnidadeMedida,
+		BoicoinsPorUnidade: ItemTrocaRequest.BoicoinsPorUnidade,
 	}
 
-	return duc.itemDoacaoRepo.Create(itemDoacao)
+	return duc.ItemTrocaRepo.Create(ItemTroca)
 }
 
-func (duc *DoacaoUseCase) AtualizaItemDoacao(itemDoacaoRequest *domain.ItemDoacao) (*domain.ItemDoacao, error) {
-	itemDoacao, err := duc.itemDoacaoRepo.GetByID(itemDoacaoRequest.ID)
+func (duc *TrocaUseCase) AtualizaItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
+	ItemTroca, err := duc.ItemTrocaRepo.GetByID(ItemTrocaRequest.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("item de doação não encontrado")
@@ -255,21 +253,21 @@ func (duc *DoacaoUseCase) AtualizaItemDoacao(itemDoacaoRequest *domain.ItemDoaca
 		return nil, err
 	}
 
-	if itemDoacaoRequest.Descricao != "" {
-		itemDoacao.Descricao = itemDoacaoRequest.Descricao
+	if ItemTrocaRequest.Descricao != "" {
+		ItemTroca.Descricao = ItemTrocaRequest.Descricao
 	}
-	if itemDoacaoRequest.UnidadeMedida != "" {
-		itemDoacao.UnidadeMedida = itemDoacaoRequest.UnidadeMedida
+	if ItemTrocaRequest.UnidadeMedida != "" {
+		ItemTroca.UnidadeMedida = ItemTrocaRequest.UnidadeMedida
 	}
-	if itemDoacaoRequest.BoicoinsPorUnidade != 0 {
-		itemDoacao.BoicoinsPorUnidade = itemDoacaoRequest.BoicoinsPorUnidade
+	if ItemTrocaRequest.BoicoinsPorUnidade != 0 {
+		ItemTroca.BoicoinsPorUnidade = ItemTrocaRequest.BoicoinsPorUnidade
 	}
 
-	return duc.itemDoacaoRepo.Update(itemDoacao)
+	return duc.ItemTrocaRepo.Update(ItemTroca)
 }
 
-func (duc *DoacaoUseCase) DeletarItemDoacao(id uuid.UUID) error {
-	if err := duc.itemDoacaoRepo.Delete(id); err != nil {
+func (duc *TrocaUseCase) DeletarItemTroca(id uuid.UUID) error {
+	if err := duc.ItemTrocaRepo.Delete(id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("item de doação não encontrado")
 		}
