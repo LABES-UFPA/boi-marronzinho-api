@@ -3,8 +3,8 @@ package main
 import (
 	"boi-marronzinho-api/adapter/http"
 	"boi-marronzinho-api/module/boicoin"
-	"boi-marronzinho-api/module/doacao"
 	"boi-marronzinho-api/module/oficina"
+	"boi-marronzinho-api/module/troca"
 	"boi-marronzinho-api/module/user"
 	"boi-marronzinho-api/postgres"
 
@@ -16,7 +16,7 @@ func main() {
 		fx.Provide(postgres.InitDB),
 		http.RouterModule(),
 		user.UserModule,
-		doacao.DoacaoModule,
+		troca.TrocaModule,
 		boicoin.BoicoinModule,
 		oficina.OficnaModule,
 		fx.Invoke(http.RegisterRoutes),
