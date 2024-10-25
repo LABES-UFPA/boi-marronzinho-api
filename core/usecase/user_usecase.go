@@ -14,11 +14,12 @@ import (
 )
 
 type UserUseCase struct {
-	userRepo repository.UserRepository
+	userRepo    repository.UserRepository
+	boicoinRepo repository.BoicoinRepository
 }
 
-func NewUsuarioUseCase(userRepo repository.UserRepository) *UserUseCase {
-	return &UserUseCase{userRepo: userRepo}
+func NewUsuarioUseCase(userRepo repository.UserRepository, boicoinRepo repository.BoicoinRepository) *UserUseCase {
+	return &UserUseCase{userRepo: userRepo, boicoinRepo: boicoinRepo}
 }
 
 func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuario, error) {
@@ -46,10 +47,10 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		CreatedAt:       time.Now(),
 	}
 
-	err = user.Validate()
-	if err != nil {
-		return nil, err
-	}
+	// err = user.Validate()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	if _, err = uc.userRepo.Create(user); err != nil {
 		return nil, err
@@ -76,6 +77,11 @@ func (uc *UserUseCase) Login(email, password string) (*dto.LoginResponseDTO, err
 		return nil, errors.New("não foi possível gerar o token")
 	}
 
+	//saldo, err := uc.boicoinRepo.GetSaldoBoicoins(user.ID)
+	//if err != nil {
+	//	return nil, errors.New("falha ao buscar saldo de Boicoins")
+	//}
+
 	userResponse := &dto.LoginResponseDTO{
 		Token:         &token,
 		ID:            user.ID,
@@ -96,6 +102,11 @@ func (uc *UserUseCase) GetUserByID(id uuid.UUID) (*dto.UsuarioResponseDTO, error
 		}
 		return nil, err
 	}
+
+	//saldo, err := uc.boicoinRepo.GetSaldoBoicoins(user.ID)
+	//if err != nil {
+	//	return nil, errors.New("falha ao buscar saldo de Boicoins")
+	//}
 
 	return &dto.UsuarioResponseDTO{
 		ID:            user.ID,
@@ -122,7 +133,6 @@ func (uc *UserUseCase) GetUsersByFullName(name string) ([]*dto.UsuarioResponseDT
 			FirstName:     user.FirstName,
 			LastName:      user.LastName,
 			Email:         user.Email,
-			SaldoBoicoins: user.SaldoBoicoins,
 		}
 		userDTOs = append(userDTOs, userDTO)
 	}
@@ -143,11 +153,11 @@ func (uc *UserUseCase) GetAllUsers() ([]*dto.UsuarioResponseDTO, error) {
 
 	for _, i := range users {
 		userDTO := &dto.UsuarioResponseDTO{
-			ID:            i.ID,
-			FirstName:     i.FirstName,
-			LastName:      i.LastName,
-			Email:         i.Email,
-			SaldoBoicoins: i.SaldoBoicoins,
+			ID:          i.ID,
+			FirstName:   i.FirstName,
+			LastName:    i.LastName,
+			Email:       i.Email,
+			TipoUsuario: i.TipoUsuario,
 		}
 		allUsers = append(allUsers, userDTO)
 	}
