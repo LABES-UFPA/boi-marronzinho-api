@@ -16,7 +16,8 @@ type Oficinas struct {
 	DataEvento          time.Time `json:"dataEvento" validate:"required"`
 	LimiteParticipantes *int      `json:"limiteParticipantes" validate:"gt=0"`
 	ParticipantesAtual  int       `json:"participantesAtual"`
-	Imagem              []byte    `json:"imagem"`
+	ImagemUrl           string    `json:"imagemUrl"`
+	LinkEndereco        string    `json:"linkEndereco"`
 	CriadoEm            time.Time `json:"-"`
 }
 
@@ -41,13 +42,13 @@ func (po *ParticipanteOficina) TableName() string {
 }
 
 type TicketOficina struct {
-	ID        uuid.UUID `json:"id" gorm:"primaryKey"`
-	UsuarioID uuid.UUID `json:"usuarioId" gorm:"not null"`
-	OficinaID uuid.UUID `json:"oficinaId" gorm:"not null"`
-	Codigo    string    `json:"codigo" gorm:"size:100"`
-	QRCode    []byte    `json:"qrcode" gorm:"type:bytea"`
-	CreatedAt time.Time `json:"createdAt" gorm:"default:CURRENT_TIMESTAMP"`
-	Validado  bool      `json:"validado"`
+	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
+	UsuarioID uuid.UUID `gorm:"type:uuid"`
+	OficinaID uuid.UUID `gorm:"type:uuid"`
+	Codigo    string    `gorm:"unique"`
+	QRCode    string    `gorm:"type:varchar(255)"`
+	Validado  bool      `gorm:"boolean"`
+	CreatedAt time.Time
 }
 
 func (tf *TicketOficina) TableName() string {
