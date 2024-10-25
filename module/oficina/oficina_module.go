@@ -5,6 +5,8 @@ import (
 	"boi-marronzinho-api/adapter/repository"
 	"boi-marronzinho-api/core/usecase"
 
+	"github.com/minio/minio-go/v7"
+
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 )
@@ -23,6 +25,6 @@ func NewOficinaUseCase(oficinaRepo repository.OficinaRepository, usuarioRepo rep
 	return usecase.NewOficinaUseCase(oficinaRepo, usuarioRepo)
 }
 
-func NewOficinaHandler(uc *usecase.OficinaUseCase) *handler.OficinaHandler {
-	return handler.NewOficinaHandler(uc)
+func NewOficinaHandler(uc *usecase.OficinaUseCase, minioClient *minio.Client) *handler.OficinaHandler {
+	return handler.NewOficinaHandler(uc, minioClient)
 }
