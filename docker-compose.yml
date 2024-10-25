@@ -25,7 +25,25 @@ services:
     networks:
       - boi-marronzinho-network
 
+  minio:
+    image: minio/minio
+    container_name: boi-marronzinho-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001" 
+    command: server /data --console-address ":9001"
+    networks:
+      - boi-marronzinho-network
+
 networks:
   boi-marronzinho-network:
     driver: bridge
     name: boi-marronzinho-network
+
+volumes:
+  minio-data:
