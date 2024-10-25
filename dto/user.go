@@ -22,4 +22,5 @@ type UsuarioResponseDTO struct {
 	LastName      string    `json:"lastName"`
 	Email         string    `json:"email"`
 	SaldoBoicoins float32   `json:"saldoBoicoins"`
+	TipoUsuario   string    `json:"tipoUsuario"`
 }
