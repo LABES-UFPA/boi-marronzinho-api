@@ -14,7 +14,7 @@ type BoicoinsTransacoes struct {
 	Descricao     string     `json:"descricao"`
 	DataTransacao time.Time  `json:"dataTransacao"`
 	PedidoID      *uuid.UUID `json:"pedidoId"`
-	DoacaoID      *uuid.UUID `json:"doacaoId"`
+	TrocaID       *uuid.UUID `json:"trocaId"`
 	OficinaID     *uuid.UUID `json:"oficinaId"`
 }
 
