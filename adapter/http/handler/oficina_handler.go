@@ -4,38 +4,47 @@ import (
 	"boi-marronzinho-api/core/usecase"
 	"boi-marronzinho-api/domain"
 	"boi-marronzinho-api/dto"
-	"encoding/base64"
-	"io"
+	minioClient "boi-marronzinho-api/minio"
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
 	"time"
+
+	minio "github.com/minio/minio-go/v7"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type OficinaHandler struct {
-	OficinaUseCase *usecase.OficinaUseCase
+    OficinaUseCase *usecase.OficinaUseCase
+    MinioClient    *minio.Client
 }
 
-func NewOficinaHandler(ouc *usecase.OficinaUseCase) *OficinaHandler {
-	return &OficinaHandler{OficinaUseCase: ouc}
+func NewOficinaHandler(ouc *usecase.OficinaUseCase, minioClient *minio.Client) *OficinaHandler {
+    return &OficinaHandler{OficinaUseCase: ouc, MinioClient: minioClient}
 }
 
 func (oh *OficinaHandler) CriaOficina(c *gin.Context) {
     var oficinaDTO domain.Oficinas
 
-    oficinaDTO.Nome = c.PostForm("nome")
-    oficinaDTO.Descricao = c.PostForm("descricao")
-    precoBoicoins, _ := strconv.ParseFloat(c.PostForm("precoBoicoins"), 64)
-    oficinaDTO.PrecoBoicoins = precoBoicoins
-    precoReal, _ := strconv.ParseFloat(c.PostForm("precoReal"), 64)
-    oficinaDTO.PrecoReal = precoReal
-    dataEvento, _ := time.Parse(time.RFC3339, c.PostForm("dataEvento"))
+    jsonData := c.PostForm("request")
+    if jsonData == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "O campo 'request' com os dados da oficina é obrigatório."})
+        return
+    }
+
+    if err := json.Unmarshal([]byte(jsonData), &oficinaDTO); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao parsear os dados JSON da oficina."})
+        return
+    }
+
+    dataEvento, err := time.Parse(time.RFC3339, oficinaDTO.DataEvento.Format(time.RFC3339))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Formato de data inválido. Use o formato RFC3339."})
+        return
+    }
     oficinaDTO.DataEvento = dataEvento
-    limiteParticipantes, _ := strconv.Atoi(c.PostForm("limiteParticipantes"))
-    oficinaDTO.LimiteParticipantes = &limiteParticipantes
-    oficinaDTO.LinkEndereco = c.PostForm("linkEndereco")
 
     file, err := c.FormFile("file")
     if err != nil {
@@ -50,13 +59,15 @@ func (oh *OficinaHandler) CriaOficina(c *gin.Context) {
     }
     defer fileContent.Close()
 
-    imageData, err := io.ReadAll(fileContent)
+    imageFileName := fmt.Sprintf("%s-%s", uuid.New().String(), file.Filename)
+
+    imageUrl, err := minioClient.UploadFile(fileContent, imageFileName, "oficinas")
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao ler o arquivo de imagem"})
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao fazer upload da imagem"})
         return
     }
 
-    oficinaDTO.Imagem = imageData
+    oficinaDTO.ImagemUrl = imageUrl
     oficinaDTO.ID = uuid.New()
     oficinaDTO.CriadoEm = time.Now()
 
@@ -88,7 +99,8 @@ func (oh *OficinaHandler) ListaOficinas(c *gin.Context) {
 			DataEvento:          oficina.DataEvento,
 			LimiteParticipantes: oficina.LimiteParticipantes,
 			ParticipantesAtual:  oficina.ParticipantesAtual,
-			Imagem:              base64.StdEncoding.EncodeToString(oficina.Imagem),
+			LinkEndereco:        oficina.LinkEndereco,
+			Imagem:              oficina.ImagemUrl,
 		}
 		oficinasResponse = append(oficinasResponse, oficinaResponse)
 	}
