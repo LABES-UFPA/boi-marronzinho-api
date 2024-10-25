@@ -4,6 +4,7 @@ import (
 	"boi-marronzinho-api/domain"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -25,6 +26,8 @@ func NewBoicoinRepository(db *gorm.DB) BoicoinRepository {
 }
 
 func (r *boicoinRepository) GetSaldoBoicoins(usuarioID uuid.UUID) (float32, error) {
+	logrus.Infof("Buscando saldo de Boicoins para o usuário com ID: %s", usuarioID)
+
 	var saldoTotal float32
 	err := r.db.Table("boicoins_transacoes").
 		Select("SUM(quantidade)").
@@ -32,8 +35,10 @@ func (r *boicoinRepository) GetSaldoBoicoins(usuarioID uuid.UUID) (float32, erro
 		Scan(&saldoTotal).Error
 
 	if err != nil {
+		logrus.Errorf("Erro ao buscar saldo de Boicoins para o usuário com ID %s: %v", usuarioID, err)
 		return 0, err
 	}
 
+	logrus.Infof("Saldo de Boicoins encontrado para o usuário com ID %s: %f", usuarioID, saldoTotal)
 	return saldoTotal, nil
 }
