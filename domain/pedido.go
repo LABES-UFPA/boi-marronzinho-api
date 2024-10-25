@@ -21,6 +21,7 @@ type Pedidos struct {
 	Codigo         string     `json:"codigo" validate:"required"`
 	DataPedido     time.Time  `json:"dataPedido" gorm:"autoCreateTime"`
 	DataConclusao  *time.Time `json:"dataConclusao"`
+}
 
 func (p *Pedidos) TableName() string {
 	return "boi_marronzinho.pedidos"
