@@ -15,7 +15,7 @@ type TrocaRepository interface {
     Deletar(trocaID uuid.UUID) error
     DeletarTrocasCriadasAntesDe(data time.Time) error
     ValidaTroca(idTroca uuid.UUID, validar bool) (*domain.Troca, error)
-
+}
 type trocaRepository struct {
     Repository[domain.Troca]
     db *gorm.DB
