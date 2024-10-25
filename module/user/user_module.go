@@ -10,17 +10,17 @@ import (
 )
 
 var UserModule = fx.Options(
-    fx.Provide(NewUserRepository),
-    fx.Provide(NewUserUseCase),
-    fx.Provide(NewUserHandler),
+	fx.Provide(NewUserRepository),
+	fx.Provide(NewUserUseCase),
+	fx.Provide(NewUserHandler),
 )
 
 func NewUserRepository(db *gorm.DB) repository.UserRepository {
-    return repository.NewUserRepository(db)
+	return repository.NewUserRepository(db)
 }
 
-func NewUserUseCase(repo repository.UserRepository) *usecase.UserUseCase {
-    return usecase.NewUsuarioUseCase(repo)
+func NewUserUseCase(userRepo repository.UserRepository, boicoinRepo repository.BoicoinRepository) *usecase.UserUseCase {
+	return usecase.NewUsuarioUseCase(userRepo, boicoinRepo)
 }
 
 func NewUserHandler(uc *usecase.UserUseCase) *handler.UserHandler {
