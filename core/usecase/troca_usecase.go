@@ -3,6 +3,7 @@ package usecase
 import (
 	"boi-marronzinho-api/adapter/repository"
 	"boi-marronzinho-api/domain"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -10,104 +11,116 @@ import (
 
 	"github.com/go-mail/mail/v2"
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
+	"github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
 )
 
 type TrocaUseCase struct {
-	doacaoRepo    repository.Repository[domain.Troca]
+	trocaRepo     repository.TrocaRepository
 	ItemTrocaRepo repository.Repository[domain.ItemTroca]
 	userRepo      repository.UserRepository
 	boicoinRepo   repository.BoicoinRepository
 }
 
 func NewTrocaUseCase(
-	trocaRepo repository.Repository[domain.Troca],
+	trocaRepo repository.TrocaRepository,
 	ItemTrocaRepo repository.Repository[domain.ItemTroca],
 	userRepo repository.UserRepository,
 	boicoinRepo repository.BoicoinRepository,
 ) *TrocaUseCase {
 	return &TrocaUseCase{
-		doacaoRepo:    trocaRepo,
+		trocaRepo:     trocaRepo,
 		ItemTrocaRepo: ItemTrocaRepo,
 		userRepo:      userRepo,
 		boicoinRepo:   boicoinRepo,
 	}
 }
 
-func (duc *TrocaUseCase) RealizarTroca(trocaRequest *domain.Troca) (*domain.Troca, error) {
-	ItemTroca, err := duc.ItemTrocaRepo.GetByID(trocaRequest.ItemTrocaID)
+func (tuc *TrocaUseCase) RealizarTroca(trocaRequest *domain.Troca) (*domain.Troca, string, error) {
+	_, err := tuc.ItemTrocaRepo.GetByID(trocaRequest.ItemTrocaID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("item de doação não encontrado")
+			return nil, "", errors.New("item de doação não encontrado")
 		}
-		return nil, err
+		return nil, "", err
 	}
 
-	boicoinsRecebidos, err := calculaBoicoins(ItemTroca.BoicoinsPorUnidade, trocaRequest.Quantidade)
-	if err != nil {
-		return nil, err
-	}
-
-	doacao := &domain.Troca{
+	troca := &domain.Troca{
 		ID:                uuid.New(),
 		UsuarioID:         trocaRequest.UsuarioID,
 		ItemTrocaID:       trocaRequest.ItemTrocaID,
 		Quantidade:        trocaRequest.Quantidade,
-		BoicoinsRecebidos: boicoinsRecebidos,
-		DataDoacao:        time.Now(),
+		BoicoinsRecebidos: trocaRequest.BoicoinsRecebidos,
+		DataTroca:         time.Now(),
 		Status:            "pendente",
 	}
 
-	createdDoacao, err := duc.doacaoRepo.Create(doacao)
+	createdtroca, err := tuc.trocaRepo.Create(troca)
+	if err != nil {
+		return nil, "", err
+	}
+
+	qrCodeBase64, err := gerarQRCodeBase64(createdtroca)
+	if err != nil {
+		logrus.Error("Erro ao gerar QR Code: ", err)
+		return nil, "", errors.New("erro ao gerar QR Code")
+	}
+
+	//go func() {
+	//	if err := tuc.notificarAdministrador(createdtroca); err != nil {
+	//		logrus.Info("Erro ao notificar administrador" + err.Error())
+	//	}
+	//}()
+
+	return createdtroca, qrCodeBase64, nil
+}
+
+func gerarQRCodeBase64(troca *domain.Troca) (string, error) {
+	qrData := troca.ID.String()
+	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)
+	if err != nil {
+		return "", err
+	}
+
+	qrCodeBase64 := base64.StdEncoding.EncodeToString(png)
+	return qrCodeBase64, nil
+}
+
+func (tuc *TrocaUseCase) ValidaTroca(trocaID uuid.UUID, validar bool) (*domain.Troca, error) {
+	_, err := tuc.trocaRepo.GetByID(trocaID)
 	if err != nil {
 		return nil, err
 	}
 
-	go func() {
-		if err := duc.notificarAdministrador(createdDoacao); err != nil {
-			logrus.Info("Erro ao notificar administrador" + err.Error())
-		}
-	}()
-
-	return createdDoacao, nil
-}
-
-func (duc *TrocaUseCase) ValidaTroca(doacaoID string, validar bool) (*domain.Troca, error) {
-	doacao, err := duc.doacaoRepo.GetByID(uuid.MustParse(doacaoID))
+	t, err := tuc.trocaRepo.ValidaTroca(trocaID, validar)
 	if err != nil {
 		return nil, err
 	}
 
 	if validar {
-		doacao.Status = "validada"
-
 		transacao := &domain.BoicoinsTransacoes{
 			ID:            uuid.New(),
-			UsuarioID:     doacao.UsuarioID,
-			Quantidade:    +float64(doacao.BoicoinsRecebidos),
-			TipoTransacao: "recebimento_doacao",
-			Descricao:     "Recebimento de Boicoins por doação de item",
+			UsuarioID:     t.UsuarioID,
+			Quantidade:    t.BoicoinsRecebidos,
+			TipoTransacao: "recebimento_troca",
+			Descricao:     "Recebimento de Boicoins por troca de item",
 			DataTransacao: time.Now(),
-			DoacaoID:      &doacao.ID,
+			TrocaID:       &t.ID,
 		}
 
-		if _, err := duc.boicoinRepo.Create(transacao); err != nil {
+		if _, err := tuc.boicoinRepo.Create(transacao); err != nil {
 			return nil, err
 		}
-	} else {
-		doacao.Status = "rejeitada"
-	}
-	doacaoAtualizada, err := duc.doacaoRepo.Update(doacao)
-	if err != nil {
-		return nil, err
 	}
 
-	return doacaoAtualizada, nil
+	return t, nil
 }
 
-func (duc *TrocaUseCase) notificarAdministrador(doacao *domain.Troca) error {
-	m, err := prepararEmailNotificacao(doacao)
+
+func (tuc *TrocaUseCase) notificarAdministrador(troca *domain.Troca) error {
+	m, err := prepararEmailNotificacao(troca)
 	if err != nil {
 		return fmt.Errorf("erro ao preparar o e-mail: %w", err)
 	}
@@ -128,11 +141,11 @@ func (duc *TrocaUseCase) notificarAdministrador(doacao *domain.Troca) error {
 	return nil
 }
 
-func prepararEmailNotificacao(doacao *domain.Troca) (*mail.Message, error) {
+func prepararEmailNotificacao(troca *domain.Troca) (*mail.Message, error) {
 	m := mail.NewMessage()
 	m.SetHeader("From", os.Getenv("SMTP_USER"))
 	m.SetHeader("To", "logancardoso4@gmail.com")
-	m.SetHeader("Subject", "Nova doação pendente - ID: "+doacao.ID.String())
+	m.SetHeader("Subject", "Nova doação pendente - ID: "+troca.ID.String())
 
 	body := fmt.Sprintf(`
 		<!DOCTYPE html>
@@ -203,7 +216,7 @@ func prepararEmailNotificacao(doacao *domain.Troca) (*mail.Message, error) {
 					<p><strong>Data:</strong> %s</p>
 				</div>
 				
-				<a href="https://seuapp.com/admin/validar-doacao/%s" class="button">Validar Doação</a>
+				<a href="https://seuapp.com/admin/validar-troca/%s" class="button">Validar Doação</a>
 
 				<div class="footer">
 					<p>Este é um e-mail automático. Por favor, não responda.</p>
@@ -212,20 +225,29 @@ func prepararEmailNotificacao(doacao *domain.Troca) (*mail.Message, error) {
 		</body>
 		</html>
 	`,
-		doacao.ID.String(),
-		doacao.UsuarioID.String(),
-		doacao.ItemTrocaID.String(),
-		doacao.Quantidade,
-		doacao.DataDoacao.Format(time.RFC1123),
-		doacao.ID.String(),
+		troca.ID.String(),
+		troca.UsuarioID.String(),
+		troca.ItemTrocaID.String(),
+		troca.Quantidade,
+		troca.DataTroca.Format(time.RFC1123),
+		troca.ID.String(),
 	)
 
 	m.SetBody("text/html", body)
 	return m, nil
 }
 
-func (duc *TrocaUseCase) TodosItensTroca() ([]*domain.ItemTroca, error) {
-	itensTroca, err := duc.ItemTrocaRepo.GetAll()
+func (tuc *TrocaUseCase) GetTroca(idTroca uuid.UUID) (*domain.Troca, error) {
+	troca, err := tuc.trocaRepo.GetByID(idTroca)
+	if err != nil {
+		return nil, err
+	}
+
+	return troca, nil
+}
+
+func (tuc *TrocaUseCase) TodosItensTroca() ([]*domain.ItemTroca, error) {
+	itensTroca, err := tuc.ItemTrocaRepo.GetAll()
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +255,7 @@ func (duc *TrocaUseCase) TodosItensTroca() ([]*domain.ItemTroca, error) {
 	return itensTroca, nil
 }
 
-func (duc *TrocaUseCase) CriarItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
+func (tuc *TrocaUseCase) CriarItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
 	ItemTroca := &domain.ItemTroca{
 		ID:                 uuid.New(),
 		Descricao:          ItemTrocaRequest.Descricao,
@@ -241,11 +263,11 @@ func (duc *TrocaUseCase) CriarItemTroca(ItemTrocaRequest *domain.ItemTroca) (*do
 		BoicoinsPorUnidade: ItemTrocaRequest.BoicoinsPorUnidade,
 	}
 
-	return duc.ItemTrocaRepo.Create(ItemTroca)
+	return tuc.ItemTrocaRepo.Create(ItemTroca)
 }
 
-func (duc *TrocaUseCase) AtualizaItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
-	ItemTroca, err := duc.ItemTrocaRepo.GetByID(ItemTrocaRequest.ID)
+func (tuc *TrocaUseCase) AtualizaItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
+	ItemTroca, err := tuc.ItemTrocaRepo.GetByID(ItemTrocaRequest.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("item de doação não encontrado")
@@ -263,11 +285,11 @@ func (duc *TrocaUseCase) AtualizaItemTroca(ItemTrocaRequest *domain.ItemTroca) (
 		ItemTroca.BoicoinsPorUnidade = ItemTrocaRequest.BoicoinsPorUnidade
 	}
 
-	return duc.ItemTrocaRepo.Update(ItemTroca)
+	return tuc.ItemTrocaRepo.Update(ItemTroca)
 }
 
-func (duc *TrocaUseCase) DeletarItemTroca(id uuid.UUID) error {
-	if err := duc.ItemTrocaRepo.Delete(id); err != nil {
+func (tuc *TrocaUseCase) DeletarItemTroca(id uuid.UUID) error {
+	if err := tuc.ItemTrocaRepo.Delete(id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("item de doação não encontrado")
 		}
@@ -281,4 +303,81 @@ func calculaBoicoins(valorUnidade float64, quantidade float64) (float64, error) 
 		return 0, errors.New("valorUnidade e quantidade devem ser maiores que zero")
 	}
 	return valorUnidade * float64(quantidade), nil
+}
+
+// func (tuc *TrocaUseCase) IniciarCronJobExpiracaoTroca() {
+//     c := cron.New()
+
+//     // Executar a cada dia às 2 da manhã para verificar e expirar trocas
+//     _, err := c.AddFunc("0 2 * * *", func() {
+//         logrus.Info("Cron job para expirar trocas iniciado.")
+//         if err := tuc.marcarTrocasExpiradas(); err != nil {
+//             logrus.Error("Erro ao deletar trocas expiradas: ", err)
+//         } else {
+//             logrus.Info("Cron job para expirar trocas finalizado com sucesso.")
+//         }
+//     })
+//     if err != nil {
+//         logrus.Fatal("Erro ao configurar o cron job: ", err)
+//     }
+
+//     // Iniciar o cron job e registrar que está ativo
+//     c.Start()
+//     logrus.Info("Cron job para expirar trocas configurado e ativo.")
+// }
+
+// Função para deletar trocas expiradas
+// func (tuc *TrocaUseCase) marcarTrocasExpiradas() error {
+//     // Definir a data de corte para expiração (16 dias atrás)
+//     dataExpiracao := time.Now().AddDate(0, 0, -16)
+
+//     logrus.Infof("Buscando trocas criadas antes de %s para expiração.", dataExpiracao.Format("2006-01-02 15:04:05"))
+
+//     // Deletar todas as trocas criadas antes da data de expiração
+//     err := tuc.trocaRepo.DeletarTrocasCriadasAntesDe(dataExpiracao)
+//     if err != nil {
+//         logrus.Error("Erro ao deletar trocas expiradas: ", err)
+//         return err
+//     }
+
+//     logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas.")
+//     return nil
+// }
+
+func (tuc *TrocaUseCase) IniciarCronJobExpiracaoTroca() {
+	c := cron.New()
+
+	// Para fins de teste: Executar a cada minuto para verificar se o cron job está funcionando corretamente
+	_, err := c.AddFunc("@every 1m", func() {
+		logrus.Info("Cron job para expirar trocas iniciado (teste com 1 minuto).")
+		if err := tuc.marcarTrocasExpiradas(); err != nil {
+			logrus.Error("Erro ao deletar trocas expiradas: ", err)
+		} else {
+			logrus.Info("Cron job para expirar trocas finalizado com sucesso (teste com 1 minuto).")
+		}
+	})
+	if err != nil {
+		logrus.Fatal("Erro ao configurar o cron job para teste: ", err)
+	}
+
+	// Iniciar o cron job e registrar que está ativo
+	c.Start()
+	logrus.Info("Cron job para expirar trocas configurado e ativo (teste com 1 minuto).")
+}
+
+func (tuc *TrocaUseCase) marcarTrocasExpiradas() error {
+	// Para fins de teste: Expirar trocas criadas 1 minuto antes
+	dataExpiracao := time.Now().Add(-1 * time.Minute)
+
+	logrus.Infof("Buscando trocas criadas antes de %s para expiração (teste com 1 minuto).", dataExpiracao.Format("2006-01-02 15:04:05"))
+
+	// Deletar todas as trocas criadas antes da data de expiração
+	err := tuc.trocaRepo.DeletarTrocasCriadasAntesDe(dataExpiracao)
+	if err != nil {
+		logrus.Error("Erro ao deletar trocas expiradas (teste): ", err)
+		return err
+	}
+
+	logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas (teste).")
+	return nil
 }
