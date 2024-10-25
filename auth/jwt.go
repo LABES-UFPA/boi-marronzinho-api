@@ -19,7 +19,7 @@ type Claims struct {
 }
 
 func GenerateJWT(user *domain.Usuario) (string, error) {
-	expirationTime := time.Now().Add(15 * time.Minute)
+	expirationTime := time.Now().Add(4 * 24 * time.Hour)
 	claims := &Claims{
 		UserID:       user.ID,
 		Username: user.FirstName,
