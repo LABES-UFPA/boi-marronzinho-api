@@ -50,7 +50,7 @@ func (ur *userRepository) AtualizarSaldo(usuarioID uuid.UUID, boicoinsRecebidos 
 
 func (ur *userRepository) GetExtrato(usuarioID uuid.UUID) ([]*domain.BoicoinsTransacoes, error) {
 	var transacoes []*domain.BoicoinsTransacoes
-	if err := ur.db.Where("usuario_id =?", usuarioID).Find(&transacoes).Error; err != nil {
+	if err := ur.db.Where("usuario_id = ?", usuarioID).Order("data_transacao DESC").Find(&transacoes).Error; err != nil {
 		return nil, err
 	}
 	return transacoes, nil
