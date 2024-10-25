@@ -35,11 +35,15 @@ func RegisterRoutes(
 	trocaHandler *handler.TrocaHandler,
 	oficinaHandler *handler.OficinaHandler,
 	carteiraHandler *handler.CarteiraHandler,
+	lojaHandler *handler.LojaHandler,
+	eventoHandler *handler.EventoHandler,
 ) {
 	router.SetupUserRoutes(r, userHandler)
 	router.SetupTrocaRoutes(r, trocaHandler)
 	router.SetupOficinaRoutes(r, oficinaHandler)
 	router.SetupCarteiraRoutes(r, carteiraHandler)
+	router.SetupLojaRoutes(r, lojaHandler)
+	router.SetupEventoRoutes(r, eventoHandler)
 }
 
 func SetupRouter() *gin.Engine {
