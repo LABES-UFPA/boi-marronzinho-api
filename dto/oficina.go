@@ -11,7 +11,9 @@ type VoucherResponseDTO struct {
 	UsuarioID   string `json:"usuarioId"`
 	NomeOficina string `json:"nomeOficina"`
 	Descricao   string `json:"descricao"`
+	Validado    bool   `json:"validado"`
 	QRCode      []byte `json:"qrcode"`
+	QRCodeURL   string `json:"qrcodeUrl"`
 }
 
 type ValidaVoucherDTO struct {
@@ -36,5 +38,6 @@ type OficinaResponse struct {
 	DataEvento          time.Time `json:"dataEvento"`
 	LimiteParticipantes *int      `json:"limiteParticipantes"`
 	ParticipantesAtual  int       `json:"participantesAtual"`
+	LinkEndereco        string    `json:"linkEndereco"`
 	Imagem              string    `json:"imagem"` // Alterado para string
 }
