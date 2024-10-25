@@ -21,10 +21,10 @@ func NewCarteiraHandler(cuc *usecase.CarteiraUseCase) *CarteiraHandler {
 
 func (ch *CarteiraHandler) AdicionaTransacao(c *gin.Context) {
 	var request struct {
-		UsuarioID       string `json:"usuarioID"`
-		Quantidade      float64 `json:"quantidade"`
-		Descricao       string `json:"descricao"`
-		DoacaoID        string `json:"doacaoID"`
+		UsuarioID  string  `json:"usuarioID"`
+		Quantidade float64 `json:"quantidade"`
+		Descricao  string  `json:"descricao"`
+		TrocaID    string  `json:"trocaID"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -38,14 +38,14 @@ func (ch *CarteiraHandler) AdicionaTransacao(c *gin.Context) {
 		return
 	}
 
-	var doacaoUUID *uuid.UUID
-	if request.DoacaoID != "" {
-		parsedID, err := uuid.Parse(request.DoacaoID)
+	var trocaUUID *uuid.UUID
+	if request.TrocaID != "" {
+		parsedID, err := uuid.Parse(request.TrocaID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "ID de doação inválido"})
 			return
 		}
-		doacaoUUID = &parsedID
+		trocaUUID = &parsedID
 	}
 
 	transacao := &domain.BoicoinsTransacoes{
@@ -55,10 +55,8 @@ func (ch *CarteiraHandler) AdicionaTransacao(c *gin.Context) {
 		TipoTransacao: "recebimento_doacao",
 		Descricao:     request.Descricao,
 		DataTransacao: time.Now(),
-		DoacaoID:      doacaoUUID,
+		TrocaID:       trocaUUID,
 	}
-
-	
 
 	if err := ch.CarteiraUseCase.CriaTransacao(transacao); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
