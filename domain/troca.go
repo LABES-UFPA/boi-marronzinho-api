@@ -13,7 +13,7 @@ type Troca struct {
 	Quantidade        float64   `json:"quantidade"`
 	BoicoinsRecebidos float64   `json:"boicoinsRecebidos"`
 	Status            string    `json:"status"` // Novo campo para status ("pendente", "validada", "rejeitada")
-	DataDoacao        time.Time `json:"dataDoacao"`
+	DataTroca         time.Time `json:"dataDoacao"`
 }
 
 func (t *Troca) TableName() string {
