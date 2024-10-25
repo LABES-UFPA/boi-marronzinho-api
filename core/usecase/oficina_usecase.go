@@ -23,16 +23,15 @@ func NewOficinaUseCase(oficinaRepo repository.OficinaRepository, usuarioRepo rep
 }
 
 func (o *OficinaUseCase) CriaOficina(oficinaRequest *domain.Oficinas) (*domain.Oficinas, error) {
-	// if err := oficinaRequest.Validate(); err != nil {
-	// 	return nil, err
-	// }
+    // if err := oficinaRequest.Validate(); err != nil {
+    //     return nil, err
+    // }
+    oficina, err := o.oficinaRepo.Create(oficinaRequest)
+    if err != nil {
+        return nil, err
+    }
 
-	oficina, err := o.oficinaRepo.Create(oficinaRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	return oficina, nil
+    return oficina, nil
 }
 
 func (o *OficinaUseCase) ListaOficinas() ([]*domain.Oficinas, error) {
@@ -99,12 +98,12 @@ func (o *OficinaUseCase) InscricaoOficina(inscricaoRequest *domain.ParticipanteO
 		}
 	}
 
-	err = o.oficinaRepo.InscreverParticipante(inscricaoRequest.OficinaID, usuario, pagamentoEmBoicoins)
+	po, err := o.oficinaRepo.InscreverParticipante(inscricaoRequest.OficinaID, usuario, pagamentoEmBoicoins)
 	if err != nil {
 		return nil, err
 	}
 
-	return inscricaoRequest, nil
+	return po, nil
 }
 
 func (o *OficinaUseCase) ListarTicketsPorUsuario(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error) {
