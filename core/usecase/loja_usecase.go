@@ -11,22 +11,24 @@ import (
 )
 
 type LojaUseCase struct {
-	produtoRepo   repository.ProdutoRepository
-	pedidoRepo    repository.PedidoRepository
-	carrinhoRepo  repository.CarrinhoRepository
-	transacaoRepo repository.BoicoinRepository
+	produtoRepo     repository.ProdutoRepository
+	pedidoItensRepo repository.PedidoItensRepository
+	pedidoRepo      repository.PedidoRepository
+	carrinhoRepo    repository.CarrinhoRepository
+	transacaoRepo   repository.BoicoinRepository
 }
 
-func NewLojaUseCase(produtoRepo repository.ProdutoRepository, pedidoRepo repository.PedidoRepository, carrinhoRepo repository.CarrinhoRepository, transacaoRepo repository.BoicoinRepository) *LojaUseCase {
+func NewLojaUseCase(produtoRepo repository.ProdutoRepository, pedidoRepo repository.PedidoRepository, pedidoItensRepo repository.PedidoItensRepository, carrinhoRepo repository.CarrinhoRepository, transacaoRepo repository.BoicoinRepository) *LojaUseCase {
 	return &LojaUseCase{
-		produtoRepo:   produtoRepo,
-		pedidoRepo:    pedidoRepo,
-		carrinhoRepo:  carrinhoRepo,
-		transacaoRepo: transacaoRepo,
+		produtoRepo:     produtoRepo,
+		pedidoRepo:      pedidoRepo,
+		pedidoItensRepo: pedidoItensRepo,
+		carrinhoRepo:    carrinhoRepo,
+		transacaoRepo:   transacaoRepo,
 	}
 }
 
-func (l *LojaUseCase) AdicionarItemCarrinho(usuarioID, produtoID uuid.UUID, quantidade int) error {
+func (l *LojaUseCase) AdicionarOuIncrementarItemCarrinho(usuarioID, produtoID uuid.UUID, quantidade int) error {
 	produto, err := l.produtoRepo.GetByID(produtoID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -39,19 +41,31 @@ func (l *LojaUseCase) AdicionarItemCarrinho(usuarioID, produtoID uuid.UUID, quan
 		return errors.New("quantidade solicitada excede o estoque disponível")
 	}
 
-	itemCarrinho := &domain.CarrinhoItem{
-		ID:            uuid.New(),
-		UsuarioID:     usuarioID,
-		ProdutoID:     produtoID,
-		Quantidade:    quantidade,
-		PrecoUnitario: produto.PrecoBoicoins,
-	}
-
-	_, err = l.carrinhoRepo.Create(itemCarrinho)
+	// Verifica se o item já existe no carrinho
+	itemExistente, err := l.carrinhoRepo.GetByUsuarioEProdutoID(usuarioID, produtoID)
 	if err != nil {
 		return err
 	}
 
+	if itemExistente != nil {
+		// Incrementa a quantidade do item existente no carrinho
+		itemExistente.Quantidade += quantidade
+		if _, err := l.carrinhoRepo.Update(itemExistente); err != nil {
+			return err
+		}
+	} else {
+		// Adiciona novo item ao carrinho
+		itemCarrinho := &domain.CarrinhoItem{
+			ID:            uuid.New(),
+			UsuarioID:     usuarioID,
+			ProdutoID:     produtoID,
+			Quantidade:    quantidade,
+			PrecoUnitario: produto.PrecoBoicoins,
+		}
+		if _, err := l.carrinhoRepo.Create(itemCarrinho); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -63,14 +77,62 @@ func (l *LojaUseCase) RemoverItemCarrinho(usuarioID, itemID uuid.UUID) error {
 	return l.carrinhoRepo.Delete(itemID)
 }
 
+func (l *LojaUseCase) AtualizarQuantidadeItemCarrinho(usuarioID, produtoID uuid.UUID, quantidade int) error {
+	itemExistente, err := l.carrinhoRepo.GetByUsuarioEProdutoID(usuarioID, produtoID)
+	if err != nil {
+		return err
+	}
+
+	if itemExistente == nil {
+		return errors.New("item não encontrado no carrinho")
+	}
+
+	if quantidade <= 0 {
+		return errors.New("quantidade deve ser maior que zero")
+	}
+
+	// Verifica o estoque do produto antes de atualizar
+	produto, err := l.produtoRepo.GetByID(produtoID)
+	if err != nil {
+		return err
+	}
+
+	if produto.QuantidadeEmEstoque < quantidade {
+		return errors.New("quantidade solicitada excede o estoque disponível")
+	}
+
+	itemExistente.Quantidade = quantidade
+	_, err = l.carrinhoRepo.Update(itemExistente)
+	return err
+}
+
 func (l *LojaUseCase) FinalizarCompra(usuarioID uuid.UUID) (*domain.Pedidos, error) {
 	itensCarrinho, err := l.carrinhoRepo.GetByUsuarioID(usuarioID)
 	if err != nil || len(itensCarrinho) == 0 {
 		return nil, errors.New("carrinho vazio ou erro ao buscar itens")
 	}
 
+	produtoIDs := make([]uuid.UUID, len(itensCarrinho))
+	for i, item := range itensCarrinho {
+		produtoIDs[i] = item.ProdutoID
+	}
+
+	produtos, err := l.produtoRepo.GetByIDs(produtoIDs)
+	if err != nil {
+		return nil, errors.New("erro ao buscar dados dos produtos")
+	}
+
+	produtoMap := make(map[uuid.UUID]*domain.Produto)
+	for _, produto := range produtos {
+		produtoMap[produto.ID] = produto
+	}
+
 	var totalBoicoins float64
 	for _, item := range itensCarrinho {
+		produto, ok := produtoMap[item.ProdutoID]
+		if !ok || produto.QuantidadeEmEstoque < item.Quantidade {
+			return nil, errors.New("estoque insuficiente para um ou mais itens no carrinho")
+		}
 		totalBoicoins += item.PrecoUnitario * float64(item.Quantidade)
 	}
 
@@ -83,13 +145,13 @@ func (l *LojaUseCase) FinalizarCompra(usuarioID uuid.UUID) (*domain.Pedidos, err
 		ID:             uuid.New(),
 		UsuarioID:      usuarioID,
 		BoicoinsUsados: totalBoicoins,
-		StatusPedido:   "concluído",
+		StatusPedido:   "concluido",
 		DataPedido:     time.Now(),
 	}
 
-	_, err = l.pedidoRepo.Create(pedido)
+	createdPedido, err := l.pedidoRepo.Create(pedido)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("erro ao criar pedido")
 	}
 
 	transacao := &domain.BoicoinsTransacoes{
@@ -101,19 +163,54 @@ func (l *LojaUseCase) FinalizarCompra(usuarioID uuid.UUID) (*domain.Pedidos, err
 		PedidoID:      &pedido.ID,
 	}
 
-	_, err = l.transacaoRepo.Create(transacao)
+	createdTransacao, err := l.transacaoRepo.Create(transacao)
 	if err != nil {
-		return nil, err
+		_ = l.pedidoRepo.Delete(createdPedido.ID)
+		return nil, errors.New("erro ao registrar transação de Boicoins")
 	}
 
+	var pedidoItens []*domain.PedidoItens
 	for _, item := range itensCarrinho {
-		produto, _ := l.produtoRepo.GetByID(item.ProdutoID)
+		pedidoItem := &domain.PedidoItens{
+			ID:            uuid.New(),
+			PedidoID:      createdPedido.ID,
+			ProdutoID:     item.ProdutoID,
+			Quantidade:    item.Quantidade,
+			PrecoUnitario: item.PrecoUnitario,
+		}
+		pedidoItens = append(pedidoItens, pedidoItem)
+
+		produto := produtoMap[item.ProdutoID]
 		produto.QuantidadeEmEstoque -= item.Quantidade
-		l.produtoRepo.Update(produto)
-		l.carrinhoRepo.Delete(item.ID)
 	}
 
-	return pedido, nil
+	for _, item := range pedidoItens {
+		if _, err := l.pedidoItensRepo.Create(item); err != nil {
+			_ = l.pedidoRepo.Delete(createdPedido.ID)
+			_ = l.transacaoRepo.Delete(createdTransacao.ID)
+			return nil, errors.New("erro ao criar itens do pedido")
+		}
+	}
+
+	if err := l.produtoRepo.BatchUpdate(produtos); err != nil {
+		_ = l.pedidoRepo.Delete(createdPedido.ID)
+		_ = l.transacaoRepo.Delete(createdTransacao.ID)
+		for _, item := range pedidoItens {
+			_ = l.pedidoRepo.Delete(item.ID)
+		}
+		return nil, errors.New("erro ao atualizar estoque dos produtos")
+	}
+
+	if err := l.carrinhoRepo.BatchDeleteByIDs(itensCarrinho); err != nil {
+		_ = l.pedidoRepo.Delete(createdPedido.ID)
+		_ = l.transacaoRepo.Delete(createdTransacao.ID)
+		for _, item := range pedidoItens {
+			_ = l.pedidoRepo.Delete(item.ID)
+		}
+		return nil, errors.New("erro ao limpar carrinho")
+	}
+
+	return createdPedido, nil
 }
 
 func (l *LojaUseCase) AdicionarProduto(produtoRequest *domain.Produto) (*domain.Produto, error) {
@@ -139,7 +236,7 @@ func (l *LojaUseCase) RemoveProduto(id uuid.UUID) error {
 	_, err := l.produtoRepo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("usuário não encontrado")
+			return errors.New("produto não encontrado")
 		}
 		return err
 	}
