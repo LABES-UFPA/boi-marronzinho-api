@@ -27,7 +27,7 @@ type Usuario struct {
 }
 
 func (u *Usuario) TableName() string {
-	return "boi_marronzinho.usuarios"
+    return "boi_marronzinho.usuarios"
 }
 
 func (u *Usuario) Validate() error {
