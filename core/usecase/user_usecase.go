@@ -42,7 +42,7 @@ func (uc *UserUseCase) CreateUser(usuarioRequest *domain.Usuario) (*domain.Usuar
 		LastName:        usuarioRequest.LastName,
 		Email:           usuarioRequest.Email,
 		PasswordHash:    string(hashedPassword),
-		TipoUsuario:     "Usuário", //usuarioRequest.TipoUsuario,
+		TipoUsuario:     "Usuario", //usuarioRequest.TipoUsuario,
 		IdiomaPreferido: "pt-BR",   //usuarioRequest.IdiomaPreferido,
 		CreatedAt:       time.Now(),
 	}
@@ -129,10 +129,10 @@ func (uc *UserUseCase) GetUsersByFullName(name string) ([]*dto.UsuarioResponseDT
 	userDTOs := make([]*dto.UsuarioResponseDTO, 0, len(users))
 	for _, user := range users {
 		userDTO := &dto.UsuarioResponseDTO{
-			ID:            user.ID,
-			FirstName:     user.FirstName,
-			LastName:      user.LastName,
-			Email:         user.Email,
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
 		}
 		userDTOs = append(userDTOs, userDTO)
 	}

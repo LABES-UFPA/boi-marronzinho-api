@@ -6,12 +6,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"os"
 	"time"
 
 	"github.com/go-mail/mail/v2"
 	"github.com/google/uuid"
-	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
@@ -117,7 +117,6 @@ func (tuc *TrocaUseCase) ValidaTroca(trocaID uuid.UUID, validar bool) (*domain.T
 
 	return t, nil
 }
-
 
 func (tuc *TrocaUseCase) notificarAdministrador(troca *domain.Troca) error {
 	m, err := prepararEmailNotificacao(troca)
@@ -258,6 +257,7 @@ func (tuc *TrocaUseCase) TodosItensTroca() ([]*domain.ItemTroca, error) {
 func (tuc *TrocaUseCase) CriarItemTroca(ItemTrocaRequest *domain.ItemTroca) (*domain.ItemTroca, error) {
 	ItemTroca := &domain.ItemTroca{
 		ID:                 uuid.New(),
+		NomeItem:           ItemTrocaRequest.NomeItem,
 		Descricao:          ItemTrocaRequest.Descricao,
 		UnidadeMedida:      ItemTrocaRequest.UnidadeMedida,
 		BoicoinsPorUnidade: ItemTrocaRequest.BoicoinsPorUnidade,
@@ -305,79 +305,77 @@ func calculaBoicoins(valorUnidade float64, quantidade float64) (float64, error) 
 	return valorUnidade * float64(quantidade), nil
 }
 
-// func (tuc *TrocaUseCase) IniciarCronJobExpiracaoTroca() {
-//     c := cron.New()
-
-//     // Executar a cada dia às 2 da manhã para verificar e expirar trocas
-//     _, err := c.AddFunc("0 2 * * *", func() {
-//         logrus.Info("Cron job para expirar trocas iniciado.")
-//         if err := tuc.marcarTrocasExpiradas(); err != nil {
-//             logrus.Error("Erro ao deletar trocas expiradas: ", err)
-//         } else {
-//             logrus.Info("Cron job para expirar trocas finalizado com sucesso.")
-//         }
-//     })
-//     if err != nil {
-//         logrus.Fatal("Erro ao configurar o cron job: ", err)
-//     }
-
-//     // Iniciar o cron job e registrar que está ativo
-//     c.Start()
-//     logrus.Info("Cron job para expirar trocas configurado e ativo.")
-// }
-
-// Função para deletar trocas expiradas
-// func (tuc *TrocaUseCase) marcarTrocasExpiradas() error {
-//     // Definir a data de corte para expiração (16 dias atrás)
-//     dataExpiracao := time.Now().AddDate(0, 0, -16)
-
-//     logrus.Infof("Buscando trocas criadas antes de %s para expiração.", dataExpiracao.Format("2006-01-02 15:04:05"))
-
-//     // Deletar todas as trocas criadas antes da data de expiração
-//     err := tuc.trocaRepo.DeletarTrocasCriadasAntesDe(dataExpiracao)
-//     if err != nil {
-//         logrus.Error("Erro ao deletar trocas expiradas: ", err)
-//         return err
-//     }
-
-//     logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas.")
-//     return nil
-// }
-
 func (tuc *TrocaUseCase) IniciarCronJobExpiracaoTroca() {
 	c := cron.New()
 
-	// Para fins de teste: Executar a cada minuto para verificar se o cron job está funcionando corretamente
-	_, err := c.AddFunc("@every 1m", func() {
-		logrus.Info("Cron job para expirar trocas iniciado (teste com 1 minuto).")
+	// Executar a cada dia às 2 da manhã para verificar e expirar trocas
+	_, err := c.AddFunc("0 2 * * *", func() {
+		logrus.Info("Cron job para expirar trocas iniciado.")
 		if err := tuc.marcarTrocasExpiradas(); err != nil {
 			logrus.Error("Erro ao deletar trocas expiradas: ", err)
 		} else {
-			logrus.Info("Cron job para expirar trocas finalizado com sucesso (teste com 1 minuto).")
+			logrus.Info("Cron job para expirar trocas finalizado com sucesso.")
 		}
 	})
 	if err != nil {
-		logrus.Fatal("Erro ao configurar o cron job para teste: ", err)
+		logrus.Fatal("Erro ao configurar o cron job: ", err)
 	}
 
 	// Iniciar o cron job e registrar que está ativo
 	c.Start()
-	logrus.Info("Cron job para expirar trocas configurado e ativo (teste com 1 minuto).")
+	logrus.Info("Cron job para expirar trocas configurado e ativo.")
 }
 
 func (tuc *TrocaUseCase) marcarTrocasExpiradas() error {
-	// Para fins de teste: Expirar trocas criadas 1 minuto antes
-	dataExpiracao := time.Now().Add(-1 * time.Minute)
+	dataExpiracao := time.Now().AddDate(0, 0, -16)
 
-	logrus.Infof("Buscando trocas criadas antes de %s para expiração (teste com 1 minuto).", dataExpiracao.Format("2006-01-02 15:04:05"))
+	logrus.Infof("Buscando trocas criadas antes de %s para expiração.", dataExpiracao.Format("2006-01-02 15:04:05"))
 
-	// Deletar todas as trocas criadas antes da data de expiração
 	err := tuc.trocaRepo.DeletarTrocasCriadasAntesDe(dataExpiracao)
 	if err != nil {
-		logrus.Error("Erro ao deletar trocas expiradas (teste): ", err)
+		logrus.Error("Erro ao deletar trocas expiradas: ", err)
 		return err
 	}
 
-	logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas (teste).")
+	logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas.")
 	return nil
 }
+
+//
+//func (tuc *TrocaUseCase) IniciarCronJobExpiracaoTroca() {
+//	c := cron.New()
+//
+//	// Para fins de teste: Executar a cada minuto para verificar se o cron job está funcionando corretamente
+//	_, err := c.AddFunc("@every 1m", func() {
+//		logrus.Info("Cron job para expirar trocas iniciado (teste com 1 minuto).")
+//		if err := tuc.marcarTrocasExpiradas(); err != nil {
+//			logrus.Error("Erro ao deletar trocas expiradas: ", err)
+//		} else {
+//			logrus.Info("Cron job para expirar trocas finalizado com sucesso (teste com 1 minuto).")
+//		}
+//	})
+//	if err != nil {
+//		logrus.Fatal("Erro ao configurar o cron job para teste: ", err)
+//	}
+//
+//	// Iniciar o cron job e registrar que está ativo
+//	c.Start()
+//	logrus.Info("Cron job para expirar trocas configurado e ativo (teste com 1 minuto).")
+//}
+//
+//func (tuc *TrocaUseCase) marcarTrocasExpiradas() error {
+//	// Para fins de teste: Expirar trocas criadas 1 minuto antes
+//	dataExpiracao := time.Now().Add(-1 * time.Minute)
+//
+//	logrus.Infof("Buscando trocas criadas antes de %s para expiração (teste com 1 minuto).", dataExpiracao.Format("2006-01-02 15:04:05"))
+//
+//	// Deletar todas as trocas criadas antes da data de expiração
+//	err := tuc.trocaRepo.DeletarTrocasCriadasAntesDe(dataExpiracao)
+//	if err != nil {
+//		logrus.Error("Erro ao deletar trocas expiradas (teste): ", err)
+//		return err
+//	}
+//
+//	logrus.Info("Processo de expiração completado. Todas as trocas expiradas foram deletadas (teste).")
+//	return nil
+//}
