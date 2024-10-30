@@ -21,6 +21,7 @@ type OficinaRepository interface {
 	BuscarUsuarioPorCodigo(codigoTicket string) (*domain.Usuario, error)
 	GetTicketsByUsuarioID(usuarioID uuid.UUID) ([]dto.VoucherResponseDTO, error)
 	ValidaVoucher(codigo *string) (*domain.TicketOficina, error)
+	DeleteOficina(id uuid.UUID) error
 }
 
 type oficinaRepository struct {
@@ -37,7 +38,7 @@ func NewOficinaRepository(db *gorm.DB) OficinaRepository {
 
 func (r *oficinaRepository) InscreverParticipante(oficinaID uuid.UUID, usuario *domain.Usuario, pagamentoEmBoicoins bool) (*domain.ParticipanteOficina, error) {
 	logrus.Infof("Iniciando inscrição de participante para oficina ID: %s, Usuário ID: %s", oficinaID, usuario.ID)
-	
+
 	var oficina domain.Oficinas
 	if err := r.db.First(&oficina, "id = ?", oficinaID).Error; err != nil {
 		logrus.Errorf("Erro ao buscar oficina com ID %s: %v", oficinaID, err)
@@ -179,4 +180,37 @@ func (r *oficinaRepository) ValidaVoucher(codigoVoucher *string) (*domain.Ticket
 
 	logrus.Infof("Voucher validado com sucesso: %s", *codigoVoucher)
 	return &ticket, nil
+}
+
+
+func (r *oficinaRepository) DeleteOficina(id uuid.UUID) error {
+	logrus.Infof("Iniciando exclusão da oficina ID: %s", id)
+
+	var oficina domain.Oficinas
+	if err := r.db.First(&oficina, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.Errorf("Oficina com ID %s não encontrada: %v", id, err)
+			return errors.New("oficina não encontrada")
+		}
+		return err
+	}
+
+	var inscritoExistente bool
+	if err := r.db.Model(&domain.ParticipanteOficina{}).Where("oficina_id = ?", id).Select("count(*) > 0").Find(&inscritoExistente).Error; err != nil {
+		logrus.Errorf("Erro ao verificar inscrições para oficina ID %s: %v", id, err)
+		return err
+	}
+
+	if inscritoExistente {
+		logrus.Warnf("Não é possível excluir a oficina ID %s pois existem participantes inscritos.", id)
+		return errors.New("não é possível excluir uma oficina com participantes inscritos")
+	}
+
+	if err := r.db.Delete(&oficina).Error; err != nil {
+		logrus.Errorf("Erro ao deletar oficina ID %s: %v", id, err)
+		return err
+	}
+
+	logrus.Infof("Oficina ID %s deletada com sucesso", id)
+	return nil
 }

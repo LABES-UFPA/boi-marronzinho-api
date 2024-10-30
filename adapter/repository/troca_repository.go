@@ -16,6 +16,7 @@ type TrocaRepository interface {
 	Deletar(trocaID uuid.UUID) error
 	DeletarTrocasCriadasAntesDe(data time.Time) error
 	ValidaTroca(idTroca uuid.UUID, validar bool) (*domain.Troca, error)
+	
 }
 
 type trocaRepository struct {
@@ -84,6 +85,16 @@ func (repo *trocaRepository) Deletar(trocaID uuid.UUID) error {
 	logrus.Infof("Troca com ID %s deletada com sucesso", trocaID)
 	return nil
 }
+
+// func (repo *trocaRepository) validacaoAdm(admID *domain.ValidacoesAdm) error {
+// 	logrus.Infof("Validando a troca pelo administrador com ID: %s", admID.ID)
+// 	if err := repo.db.Create(admID).Error; err != nil {
+// 		logrus.Errorf("Erro ao validar troca pelo administrador com ID %s: %v", admID.ID, err)
+// 		return err
+// 	}
+// 	logrus.Infof("Validação da troca pelo administrador com ID %s realizada com sucesso", admID.ID)
+// 	return nil
+// }
 
 func (repo *trocaRepository) DeletarTrocasCriadasAntesDe(data time.Time) error {
 	logrus.Infof("Deletando trocas criadas antes de %v com status 'pendente'", data)

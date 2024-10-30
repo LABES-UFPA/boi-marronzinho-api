@@ -27,9 +27,8 @@ func NewBoicoinRepository(db *gorm.DB) BoicoinRepository {
 
 func (r *boicoinRepository) GetSaldoBoicoins(usuarioID uuid.UUID) (float32, error) {
 	logrus.Infof("Buscando saldo de Boicoins para o usuário com ID: %s", usuarioID)
-
 	var saldoTotal float32
-	err := r.db.Table("boicoins_transacoes").
+	err := r.db.Table("boi_marronzinho.boicoins_transacoes").
 		Select("SUM(quantidade)").
 		Where("usuario_id = ?", usuarioID).
 		Scan(&saldoTotal).Error

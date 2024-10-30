@@ -114,12 +114,31 @@ func (eh *EventoHandler) UpdateEvento(c *gin.Context) {
 		return
 	}
 
+	// Parse dos dados do evento
 	var updateData domain.Evento
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Dados inválidos"})
+	jsonData := c.PostForm("request")
+	if jsonData == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "O campo 'request' com os dados do evento é obrigatório."})
+		return
+	}
+	if err := json.Unmarshal([]byte(jsonData), &updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao parsear os dados JSON do evento"})
 		return
 	}
 
+	// Verifica se um arquivo de imagem foi enviado
+	file, err := c.FormFile("file")
+	if err == nil { // Atualiza com imagem nova se foi enviada
+		updatedEvento, err := eh.EventoUseCase.UpdateEventoWithFile(id, &updateData, file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, updatedEvento)
+		return
+	}
+
+	// Atualiza sem alterar a imagem, caso nenhum arquivo tenha sido enviado
 	updatedEvento, err := eh.EventoUseCase.UpdateEvento(id, &updateData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

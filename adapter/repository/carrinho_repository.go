@@ -2,6 +2,7 @@ package repository
 
 import (
 	"boi-marronzinho-api/domain"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -11,7 +12,8 @@ import (
 type CarrinhoRepository interface {
 	Repository[domain.CarrinhoItem]
 	GetByUsuarioID(usuarioID uuid.UUID) ([]*domain.CarrinhoItem, error)
-	GetSaldoBoicoins(usuarioID uuid.UUID) (float32, error)
+	GetByUsuarioEProdutoID(usuarioID, produtoID uuid.UUID) (*domain.CarrinhoItem, error)
+	BatchDeleteByIDs(items []*domain.CarrinhoItem) error
 }
 
 type carrinhoRepository struct {
@@ -29,8 +31,7 @@ func NewCarrinhoRepository(db *gorm.DB) CarrinhoRepository {
 func (r *carrinhoRepository) GetByUsuarioID(usuarioID uuid.UUID) ([]*domain.CarrinhoItem, error) {
 	logrus.Infof("Buscando itens do carrinho para o usuário com ID: %s", usuarioID)
 	var itens []*domain.CarrinhoItem
-	err := r.db.Where("usuario_id = ?", usuarioID).Find(&itens).Error
-	if err != nil {
+	if err := r.db.Where("usuario_id = ?", usuarioID).Find(&itens).Error; err != nil {
 		logrus.Errorf("Erro ao buscar itens do carrinho para o usuário com ID %s: %v", usuarioID, err)
 		return nil, err
 	}
@@ -38,19 +39,31 @@ func (r *carrinhoRepository) GetByUsuarioID(usuarioID uuid.UUID) ([]*domain.Carr
 	return itens, nil
 }
 
-func (r *carrinhoRepository) GetSaldoBoicoins(usuarioID uuid.UUID) (float32, error) {
-	logrus.Infof("Buscando saldo de Boicoins para o usuário com ID: %s", usuarioID)
-	var saldoTotal float32
-	err := r.db.Table("boicoins_transacoes").
-		Select("SUM(quantidade)").
-		Where("usuario_id = ?", usuarioID).
-		Scan(&saldoTotal).Error
-
-	if err != nil {
-		logrus.Errorf("Erro ao buscar saldo de Boicoins para o usuário com ID %s: %v", usuarioID, err)
-		return 0, err
+func (r *carrinhoRepository) GetByUsuarioEProdutoID(usuarioID, produtoID uuid.UUID) (*domain.CarrinhoItem, error) {
+	logrus.Infof("Buscando item do carrinho para o usuário com ID: %s e produto com ID: %s", usuarioID, produtoID)
+	var item domain.CarrinhoItem
+	if err := r.db.Where("usuario_id = ? AND produto_id = ?", usuarioID, produtoID).First(&item).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.Infof("Item do carrinho não encontrado para o usuário com ID: %s e produto com ID: %s", usuarioID, produtoID)
+			return nil, nil
+		}
+		logrus.Errorf("Erro ao buscar item do carrinho: %v", err)
+		return nil, err
 	}
+	logrus.Infof("Item do carrinho encontrado: %+v", item)
+	return &item, nil
+}
 
-	logrus.Infof("Saldo de Boicoins encontrado para o usuário com ID %s: %f", usuarioID, saldoTotal)
-	return saldoTotal, nil
+func (r *carrinhoRepository) BatchDeleteByIDs(items []*domain.CarrinhoItem) error {
+	logrus.Infof("Deletando múltiplos itens do carrinho")
+	ids := make([]uuid.UUID, len(items))
+	for i, item := range items {
+		ids[i] = item.ID
+	}
+	if err := r.db.Delete(&domain.CarrinhoItem{}, ids).Error; err != nil {
+		logrus.Errorf("Erro ao deletar múltiplos itens do carrinho: %v", err)
+		return err
+	}
+	logrus.Infof("Deleção em batch dos itens do carrinho concluída com sucesso")
+	return nil
 }

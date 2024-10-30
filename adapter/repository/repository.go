@@ -12,7 +12,9 @@ type Repository[T any] interface {
 	Delete(id uuid.UUID) error
 	GetByID(id uuid.UUID) (*T, error)
 	GetAll() ([]*T, error)
-	WithTransaction(fn func(txRepo Repository[T]) error) error
+	BatchCreate(entities []*T) error
+	BatchUpdate(entities []*T) error
+	BatchDelete(ids []uuid.UUID) error
 }
 
 type repository[T any] struct {
@@ -76,16 +78,42 @@ func (r *repository[T]) GetAll() ([]*T, error) {
 	return entities, nil
 }
 
-func (r *repository[T]) WithTransaction(fn func(txRepo Repository[T]) error) error {
-	logrus.Infof("Iniciando transação")
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		txRepo := &repository[T]{db: tx}
-		err := fn(txRepo)
-		if err != nil {
-			logrus.Errorf("Erro durante a transação: %v", err)
+func (r *repository[T]) BatchCreate(entities []*T) error {
+	logrus.Infof("Criando múltiplas entidades em batch")
+	tx := r.db.Begin()
+	for _, entity := range entities {
+		if err := tx.Create(entity).Error; err != nil {
+			tx.Rollback()
+			logrus.Errorf("Erro ao criar entidade em batch: %v", err)
 			return err
 		}
-		logrus.Infof("Transação concluída com sucesso")
-		return nil
-	})
+	}
+	if err := tx.Commit().Error; err != nil {
+		logrus.Errorf("Erro ao commitar transação de criação em batch: %v", err)
+		return err
+	}
+	logrus.Infof("Criação em batch concluída com sucesso")
+	return nil
+}
+
+func (r *repository[T]) BatchUpdate(entities []*T) error {
+	logrus.Infof("Atualizando múltiplas entidades")
+	for _, entity := range entities {
+		if err := r.db.Save(entity).Error; err != nil {
+			logrus.Errorf("Erro ao atualizar entidade: %v", err)
+			return err
+		}
+	}
+	logrus.Infof("Atualização em batch concluída com sucesso")
+	return nil
+}
+
+func (r *repository[T]) BatchDelete(ids []uuid.UUID) error {
+	logrus.Infof("Deletando múltiplas entidades")
+	if err := r.db.Delete(new(T), ids).Error; err != nil {
+		logrus.Errorf("Erro ao deletar múltiplas entidades: %v", err)
+		return err
+	}
+	logrus.Infof("Deleção em batch concluída com sucesso")
+	return nil
 }

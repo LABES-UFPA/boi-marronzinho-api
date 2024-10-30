@@ -4,9 +4,14 @@ import (
 	"boi-marronzinho-api/adapter/repository"
 	"boi-marronzinho-api/domain"
 	"boi-marronzinho-api/dto"
+	"boi-marronzinho-api/minio"
+	minioClient "boi-marronzinho-api/minio"
 	"errors"
+	"fmt"
+	"mime/multipart"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -23,15 +28,15 @@ func NewOficinaUseCase(oficinaRepo repository.OficinaRepository, usuarioRepo rep
 }
 
 func (o *OficinaUseCase) CriaOficina(oficinaRequest *domain.Oficinas) (*domain.Oficinas, error) {
-    // if err := oficinaRequest.Validate(); err != nil {
-    //     return nil, err
-    // }
-    oficina, err := o.oficinaRepo.Create(oficinaRequest)
-    if err != nil {
-        return nil, err
-    }
+	// if err := oficinaRequest.Validate(); err != nil {
+	//     return nil, err
+	// }
+	oficina, err := o.oficinaRepo.Create(oficinaRequest)
+	if err != nil {
+		return nil, err
+	}
 
-    return oficina, nil
+	return oficina, nil
 }
 
 func (o *OficinaUseCase) ListaOficinas() ([]*domain.Oficinas, error) {
@@ -61,17 +66,78 @@ func (o *OficinaUseCase) UpdateOficina(id uuid.UUID, updateData *domain.Oficinas
 	return oficina, nil
 }
 
-func (o *OficinaUseCase) DeleteUser(id uuid.UUID) error {
-	_, err := o.oficinaRepo.GetByID(id)
+func (o *OficinaUseCase) UpdateOficinaWithFile(id uuid.UUID, updateData *domain.Oficinas, file *multipart.FileHeader) (*domain.Oficinas, error) {
+    oficina, err := o.oficinaRepo.GetByID(id)
+    if err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, errors.New("oficina não encontrada")
+        }
+        return nil, err
+    }
+
+    if updateData.Nome != "" {
+        oficina.Nome = updateData.Nome
+    }
+    if updateData.LimiteParticipantes != nil {
+        oficina.LimiteParticipantes = updateData.LimiteParticipantes
+    }
+    oficina.DataEvento = updateData.DataEvento
+
+    if file != nil {
+        oldFileName := oficina.ImagemUrl
+
+        src, err := file.Open()
+        if err != nil {
+            return nil, errors.New("falha ao abrir o arquivo de imagem")
+        }
+        defer src.Close()
+
+        newFileName := uuid.New().String()
+
+        imageURL, err := minio.UploadFile(src, newFileName, "oficinas")
+        if err != nil {
+            return nil, errors.New("falha ao fazer upload da nova imagem")
+        }
+
+        oficina.ImagemUrl = imageURL
+
+        if oldFileName != "" {
+            if err := minio.DeleteFile(oldFileName, "oficinas"); err != nil {
+                return nil, fmt.Errorf("falha ao deletar a imagem antiga: %v", err)
+            }
+        }
+    }
+
+    updatedOficina, err := o.oficinaRepo.Update(oficina)
+    if err != nil {
+        return nil, errors.New("falha ao atualizar a oficina")
+    }
+
+    return updatedOficina, nil
+}
+
+func (o *OficinaUseCase) DeleteOficina(id uuid.UUID) error {
+	oficina, err := o.oficinaRepo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("usuário não encontrado")
+			return errors.New("oficina não encontrada")
 		}
-		return err
+		return errors.New("erro ao buscar oficina: " + err.Error())
 	}
 
-	if err := o.oficinaRepo.Delete(id); err != nil {
-		return errors.New("falha ao deletar oficia")
+	if err := o.oficinaRepo.DeleteOficina(id); err != nil {
+		return errors.New("erro ao deletar oficina: " + err.Error())
+	}
+
+	logrus.Infof("Oficina ID %s deletada com sucesso no caso de uso", id)
+
+	fileName := oficina.ImagemUrl
+	bucketName := "oficinas"
+
+	if err := minioClient.DeleteFile(fileName, bucketName); err != nil {
+		logrus.Warnf("Falha ao deletar imagem associada à oficina ID %s: %v", id, err)
+	} else {
+		logrus.Infof("Imagem %s deletada com sucesso do bucket %s", fileName, bucketName)
 	}
 
 	return nil

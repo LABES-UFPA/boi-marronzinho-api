@@ -17,69 +17,68 @@ import (
 )
 
 type OficinaHandler struct {
-    OficinaUseCase *usecase.OficinaUseCase
-    MinioClient    *minio.Client
+	OficinaUseCase *usecase.OficinaUseCase
+	MinioClient    *minio.Client
 }
 
 func NewOficinaHandler(ouc *usecase.OficinaUseCase, minioClient *minio.Client) *OficinaHandler {
-    return &OficinaHandler{OficinaUseCase: ouc, MinioClient: minioClient}
+	return &OficinaHandler{OficinaUseCase: ouc, MinioClient: minioClient}
 }
 
 func (oh *OficinaHandler) CriaOficina(c *gin.Context) {
-    var oficinaDTO domain.Oficinas
+	var oficinaDTO domain.Oficinas
 
-    jsonData := c.PostForm("request")
-    if jsonData == "" {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "O campo 'request' com os dados da oficina é obrigatório."})
-        return
-    }
+	jsonData := c.PostForm("request")
+	if jsonData == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "O campo 'request' com os dados da oficina é obrigatório."})
+		return
+	}
 
-    if err := json.Unmarshal([]byte(jsonData), &oficinaDTO); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao parsear os dados JSON da oficina."})
-        return
-    }
+	if err := json.Unmarshal([]byte(jsonData), &oficinaDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao parsear os dados JSON da oficina."})
+		return
+	}
 
-    dataEvento, err := time.Parse(time.RFC3339, oficinaDTO.DataEvento.Format(time.RFC3339))
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Formato de data inválido. Use o formato RFC3339."})
-        return
-    }
-    oficinaDTO.DataEvento = dataEvento
+	dataEvento, err := time.Parse(time.RFC3339, oficinaDTO.DataEvento.Format(time.RFC3339))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Formato de data inválido. Use o formato RFC3339."})
+		return
+	}
+	oficinaDTO.DataEvento = dataEvento
 
-    file, err := c.FormFile("file")
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Falha ao receber o arquivo de imagem"})
-        return
-    }
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Falha ao receber o arquivo de imagem"})
+		return
+	}
 
-    fileContent, err := file.Open()
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao abrir o arquivo de imagem"})
-        return
-    }
-    defer fileContent.Close()
+	fileContent, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao abrir o arquivo de imagem"})
+		return
+	}
+	defer fileContent.Close()
 
-    imageFileName := fmt.Sprintf("%s-%s", uuid.New().String(), file.Filename)
+	imageFileName := fmt.Sprintf("%s-%s", uuid.New().String(), file.Filename)
 
-    imageUrl, err := minioClient.UploadFile(fileContent, imageFileName, "oficinas")
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao fazer upload da imagem"})
-        return
-    }
+	imageUrl, err := minioClient.UploadFile(fileContent, imageFileName, "oficinas")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao fazer upload da imagem"})
+		return
+	}
 
-    oficinaDTO.ImagemUrl = imageUrl
-    oficinaDTO.ID = uuid.New()
-    oficinaDTO.CriadoEm = time.Now()
+	oficinaDTO.ImagemUrl = imageUrl
+	oficinaDTO.ID = uuid.New()
+	oficinaDTO.CriadoEm = time.Now()
 
-    oficina, err := oh.OficinaUseCase.CriaOficina(&oficinaDTO)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	oficina, err := oh.OficinaUseCase.CriaOficina(&oficinaDTO)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusOK, oficina)
+	c.JSON(http.StatusOK, oficina)
 }
-
 
 func (oh *OficinaHandler) ListaOficinas(c *gin.Context) {
 	oficinas, err := oh.OficinaUseCase.ListaOficinas()
@@ -116,33 +115,54 @@ func (oh *OficinaHandler) UpdateOficina(c *gin.Context) {
 		return
 	}
 
+	jsonData := c.PostForm("request")
+	if jsonData == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "O campo 'request' com os dados da oficina é obrigatório."})
+		return
+	}
+
 	var updateData domain.Oficinas
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+	if err := json.Unmarshal([]byte(jsonData), &updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erro ao parsear os dados JSON da oficina."})
 		return
 	}
 
-	updatedUser, err := oh.OficinaUseCase.UpdateOficina(id, &updateData)
+	dataEvento, err := time.Parse(time.RFC3339, updateData.DataEvento.Format(time.RFC3339))
 	if err != nil {
-		if err.Error() == "user not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "usuário não encontrado"})
-		} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Formato de data inválido. Use o formato RFC3339."})
+		return
+	}
+	updateData.DataEvento = dataEvento
+
+	file, err := c.FormFile("file")
+	if err == nil {
+		updatedOficina, err := oh.OficinaUseCase.UpdateOficinaWithFile(id, &updateData, file)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
+		c.JSON(http.StatusOK, updatedOficina)
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedUser)
+	updatedOficina, err := oh.OficinaUseCase.UpdateOficina(id, &updateData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedOficina)
 }
 
 func (oh *OficinaHandler) DeleteOficina(c *gin.Context) {
-	var oficinaDTO *dto.Teste
-	if err := c.ShouldBindJSON(&oficinaDTO); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID da oficina é inválido"})
 		return
 	}
 
-	err := oh.OficinaUseCase.DeleteUser(uuid.MustParse(oficinaDTO.ID))
+	err = oh.OficinaUseCase.DeleteOficina(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
