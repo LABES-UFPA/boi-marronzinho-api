@@ -73,7 +73,6 @@ func UpdateFile(file io.Reader, fileName string, bucketName string) (string, err
 
 
 func detectContentType(file io.Reader) (string, error) {
-    // Lê os primeiros 512 bytes para detectar o tipo de conteúdo
     buffer := make([]byte, 512)
     _, err := file.Read(buffer)
     if err != nil {
